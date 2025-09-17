@@ -21,3 +21,4 @@ replay_pid*
 *.so
 generated/
 *.csv
+output/
