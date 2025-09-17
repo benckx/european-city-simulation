@@ -5,15 +5,16 @@ import simulation.model.Point
 
 const val WIDTH = 1920
 const val HEIGHT = 1080
+const val BORDER_MARGIN_X = WIDTH * .15
+const val BORDER_MARGIN_Y = HEIGHT * .15
+
 const val NUMBER_OF_POINTS = 16
 
 fun createPoints(): List<Point> {
-    val marginX = WIDTH * .15
-    val marginY = HEIGHT * .15
     val points = mutableListOf<Point>()
     (1..NUMBER_OF_POINTS).forEach { _ ->
-        val x = (marginX.toInt() until (WIDTH - marginX).toInt()).random()
-        val y = (marginY.toInt() until (HEIGHT - marginY).toInt()).random()
+        val x = (BORDER_MARGIN_X.toInt() until (WIDTH - BORDER_MARGIN_X).toInt()).random()
+        val y = (BORDER_MARGIN_Y.toInt() until (HEIGHT - BORDER_MARGIN_Y).toInt()).random()
         points += Point(x.toDouble(), y.toDouble())
     }
 
