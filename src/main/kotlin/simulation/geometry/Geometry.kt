@@ -3,8 +3,10 @@ package simulation.geometry
 import simulation.model.Edge
 import simulation.model.Point
 import simulation.model.Triangle
+import kotlin.math.hypot
+import kotlin.math.sqrt
 
-fun delaunayTriangulation(points: List<Point>): DelauneyTriangulation {
+fun delaunayTriangulation(points: List<Point>): List<Triangle> {
     // Determine bounds for the super-triangle
     val minX = points.minOf { it.x }
     val maxX = points.maxOf { it.x }
@@ -55,9 +57,43 @@ fun delaunayTriangulation(points: List<Point>): DelauneyTriangulation {
     }
 
     // Final cleanup: remove any triangles that contain a vertex from the super-triangle
-    return DelauneyTriangulation(triangles.filterNot { t ->
+    return triangles.filterNot { t ->
         t.a == p1 || t.a == p2 || t.a == p3 ||
                 t.b == p1 || t.b == p2 || t.b == p3 ||
                 t.c == p1 || t.c == p2 || t.c == p3
-    }, Triangle(p1, p2, p3))
+    }
+}
+
+fun distanceBetween(p1: Point, p2: Point): Double {
+    return hypot((p1.x - p2.x), (p1.y - p2.y))
+}
+
+fun distanceFromPointToLine(point: Point, lineStart: Point, lineEnd: Point): Double {
+    val a = point.x - lineStart.x
+    val b = point.y - lineStart.y
+    val c = lineEnd.x - lineStart.x
+    val d = lineEnd.y - lineStart.y
+
+    val dot = a * c + b * d
+    val lenSq = c * c + d * d
+
+    if (lenSq == 0.0) return distanceBetween(point, lineStart)
+
+    val param = dot / lenSq
+
+    val xx = when {
+        param < 0 -> lineStart.x
+        param > 1 -> lineEnd.x
+        else -> lineStart.x + param * c
+    }
+
+    val yy = when {
+        param < 0 -> lineStart.y
+        param > 1 -> lineEnd.y
+        else -> lineStart.y + param * d
+    }
+
+    val dx = point.x - xx
+    val dy = point.y - yy
+    return sqrt(dx * dx + dy * dy)
 }

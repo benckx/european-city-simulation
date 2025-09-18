@@ -1,9 +1,33 @@
 package simulation.model
 
+import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.hypot
 import kotlin.math.pow
 
 data class Triangle(val a: Point, val b: Point, val c: Point) {
+    fun area(): Double {
+        return 0.5 * abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y))
+    }
+
+    fun middlePoint(): Point {
+        return Point((a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3)
+    }
+
+    fun angles(): List<Double> {
+        val ab = hypot(b.x - a.x, b.y - a.y)
+        val bc = hypot(c.x - b.x, c.y - b.y)
+        val ca = hypot(a.x - c.x, a.y - c.y)
+
+        val angleA = acos((ab.pow(2) + ca.pow(2) - bc.pow(2)) / (2 * ab * ca)) * (180 / Math.PI)
+        val angleB = acos((ab.pow(2) + bc.pow(2) - ca.pow(2)) / (2 * ab * bc)) * (180 / Math.PI)
+        val angleC = 180.0 - angleA - angleB
+
+        return listOf(angleA, angleB, angleC)
+    }
+
+    fun getEdges(): Set<Edge> = setOf(Edge(a, b), Edge(b, c), Edge(c, a))
+
     fun isPointInCircumcircle(p: Point): Boolean {
         val d = (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) * 2
         val ax2 = a.x.pow(2)
@@ -19,6 +43,4 @@ data class Triangle(val a: Point, val b: Point, val c: Point) {
         val dist = hypot(p.x - centerX, p.y - centerY)
         return dist <= radius
     }
-
-    fun getEdges(): Set<Edge> = setOf(Edge(a, b), Edge(b, c), Edge(c, a))
 }
