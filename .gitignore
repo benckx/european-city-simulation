@@ -22,3 +22,4 @@ replay_pid*
 generated/
 *.csv
 output/
+.DS_Store

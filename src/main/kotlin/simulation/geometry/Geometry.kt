@@ -34,14 +34,14 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
         for (t in triangles) {
             if (t.isPointInCircumcircle(p)) {
                 badTriangles.add(t)
-                polygon.addAll(t.getEdges())
+                polygon.addAll(t.edges)
             }
         }
 
         // Remove shared edges from the polygon
         for (t in badTriangles) {
-            t.getEdges().forEach { edge ->
-                if (badTriangles.count { it.getEdges().contains(edge) } > 1) {
+            t.edges.forEach { edge ->
+                if (badTriangles.count { it.edges.contains(edge) } > 1) {
                     polygon.remove(edge)
                 }
             }

@@ -1,18 +1,20 @@
 package simulation.model
 
-import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.hypot
 import kotlin.math.pow
 
 data class Triangle(val a: Point, val b: Point, val c: Point) {
-    fun area(): Double {
-        return 0.5 * abs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y))
-    }
+    val edges: Set<Edge>
+        get() = setOf(Edge(a, b), Edge(b, c), Edge(c, a))
 
-    fun middlePoint(): Point {
-        return Point((a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3)
-    }
+    val hypotenuse: Edge
+        get() = edges.maxBy { edge -> edge.length }
+
+    val points: Set<Point>
+        get() = setOf(a, b, c)
+
+    fun asPolygon(): Polygon = Polygon(points)
 
     fun angles(): List<Double> {
         val ab = hypot(b.x - a.x, b.y - a.y)
@@ -25,8 +27,6 @@ data class Triangle(val a: Point, val b: Point, val c: Point) {
 
         return listOf(angleA, angleB, angleC)
     }
-
-    fun getEdges(): Set<Edge> = setOf(Edge(a, b), Edge(b, c), Edge(c, a))
 
     fun isPointInCircumcircle(p: Point): Boolean {
         val d = (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) * 2
@@ -43,4 +43,14 @@ data class Triangle(val a: Point, val b: Point, val c: Point) {
         val dist = hypot(p.x - centerX, p.y - centerY)
         return dist <= radius
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Triangle
+        return points == other.points
+    }
+
+    override fun hashCode(): Int = points.hashCode()
 }

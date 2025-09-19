@@ -1,15 +1,29 @@
 package simulation
 
+import simulation.model.Edge
+import simulation.model.Polygon
 import simulation.model.Triangle
 import java.awt.BasicStroke
 import java.awt.Color
+import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.awt.image.BufferedImage.TYPE_INT_RGB
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.collections.forEach
 
-fun outputToPng(triangles: List<Triangle>) {
+private fun Graphics2D.drawEdge(edge: Edge) {
+    this.drawLine(
+        edge.p1.x.toInt(),
+        edge.p1.y.toInt(),
+        edge.p2.x.toInt(),
+        edge.p2.y.toInt()
+    )
+}
+
+fun outputToPng(polygons: List<Polygon>) {
+    val edges = polygons.flatMap { it.edges }.distinct()
+
     // image
     val image = BufferedImage(WIDTH, HEIGHT, TYPE_INT_RGB)
     val graphics = image.createGraphics()
@@ -18,18 +32,12 @@ fun outputToPng(triangles: List<Triangle>) {
     graphics.color = Color.BLACK
     graphics.fillRect(0, 0, WIDTH, HEIGHT)
 
-    // draw triangles
-    val edges = triangles.flatMap { it.getEdges() }.distinct()
+
+    // draw
     graphics.color = Color.YELLOW
     graphics.stroke = BasicStroke(8f)
-    edges.forEach { edge ->
-        graphics.drawLine(
-            edge.p1.x.toInt(),
-            edge.p1.y.toInt(),
-            edge.p2.x.toInt(),
-            edge.p2.y.toInt()
-        )
-    }
+    edges
+        .forEach { graphics.drawEdge(it) }
 
     graphics.dispose()
 
@@ -39,5 +47,5 @@ fun outputToPng(triangles: List<Triangle>) {
     }
 
     // save
-    ImageIO.write(image, "PNG", File("output/points.png"))
+    ImageIO.write(image, "PNG", File("output/layout.png"))
 }

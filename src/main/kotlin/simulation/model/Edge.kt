@@ -1,6 +1,11 @@
 package simulation.model
 
+import simulation.geometry.distanceBetween
+
 data class Edge(val p1: Point, val p2: Point) {
+    val length: Double
+        get() = distanceBetween(p1, p2)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
