@@ -3,26 +3,25 @@ package simulation
 import io.github.oshai.kotlinlogging.KotlinLogging
 import simulation.geometry.delaunayTriangulation
 import simulation.geometry.distanceBetween
+import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.Polygon
 import simulation.model.Triangle
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Stream
 
-const val WIDTH = 1600
-const val HEIGHT = 1600
-const val BORDER_MARGIN_X = WIDTH * .03
-const val BORDER_MARGIN_Y = HEIGHT * .03
+const val WIDTH = 2600
+const val HEIGHT = 2600
 const val MIN_DISTANCE_BETWEEN_POINTS = 200
 const val MAX_DISTANCE_BETWEEN_POINTS = 500
-const val MIN_ANGLE = 30
-const val NUMBER_OF_POINTS = 22
+const val MIN_ANGLE = 27
+const val NUMBER_OF_POINTS = 26
 
 const val TIMEOUT = 10_000L
 
 private val logger = KotlinLogging.logger {}
 
-fun createPoints(): List<Point> {
+private fun createPoints(): List<Point> {
     val points = mutableListOf<Point>()
     val timeoutAt = System.currentTimeMillis() + TIMEOUT
 
@@ -33,8 +32,8 @@ fun createPoints(): List<Point> {
         !points.isEmpty() && points.all { distanceBetween(it, candidate) > MAX_DISTANCE_BETWEEN_POINTS }
 
     while (points.size < NUMBER_OF_POINTS && System.currentTimeMillis() < timeoutAt) {
-        val x = (BORDER_MARGIN_X.toInt() until (WIDTH - BORDER_MARGIN_X).toInt()).random()
-        val y = (BORDER_MARGIN_Y.toInt() until (HEIGHT - BORDER_MARGIN_Y).toInt()).random()
+        val x = (0 until WIDTH).random()
+        val y = (0 until HEIGHT).random()
         val candidate = Point(x.toDouble(), y.toDouble())
         if (!isTooCloseToAnotherPoint(candidate) && !isTooFarFromAllPoints(candidate)) {
             points += candidate
@@ -44,7 +43,7 @@ fun createPoints(): List<Point> {
     return points
 }
 
-fun createTriangulation(): List<Triangle> {
+private fun createTriangulation(): List<Triangle> {
     val attempts = AtomicInteger(0)
 
     val triangles = Stream.generate {
@@ -53,14 +52,14 @@ fun createTriangulation(): List<Triangle> {
         val minAngle = triangles.flatMap { it.angles() }.minOf { it }
         val currentAttempts = attempts.incrementAndGet()
 
-        if (currentAttempts % 1_000 == 0) {
+        if (currentAttempts % 100_000 == 0) {
             println("attempts: $currentAttempts")
         }
 
         triangles to minAngle
     }
         .parallel()
-        .filter { (_, minAngle) -> minAngle > MIN_ANGLE }
+        .filter { (_, minAngle) -> minAngle >= MIN_ANGLE }
         .findFirst()
         .map { (triangle, _) -> triangle }
         .orElseThrow { RuntimeException("Could not find valid triangulation") }
@@ -77,7 +76,7 @@ fun createTriangulation(): List<Triangle> {
  * @param triangles The list of triangles to process.
  * @return A list of polygons, which may include both triangles and quadrilaterals.
  */
-fun mergeTrianglesToQuadrilaterals(triangles: List<Triangle>): List<Polygon> {
+private fun mergeTrianglesToQuadrilaterals(triangles: List<Triangle>): List<Polygon> {
     val hypotenuses = triangles.map { triangle -> triangle.hypotenuse }
     val sharedHypotenuses = hypotenuses.filter { edge -> hypotenuses.count { it == edge } > 1 }.distinct()
     val trianglesToKeep = triangles.filterNot { it.edges.any { edge -> sharedHypotenuses.contains(edge) } }.toSet()
@@ -104,12 +103,18 @@ fun main() {
     logger.info { "min between points: $MIN_DISTANCE_BETWEEN_POINTS" }
     logger.info { "max between points: $MAX_DISTANCE_BETWEEN_POINTS" }
 
-    val triangles = createTriangulation()
-    val polygons = mergeTrianglesToQuadrilaterals(triangles)
-    logger.info {
-        "polygons: ${polygons.size}, " +
-                "#triangles = ${polygons.count { it.isTriangle() }}, " +
-                "#quadrilaterals = ${polygons.count { it.isQuadrilateral() }}"
+    (1..50).forEach { _ ->
+        val triangles = createTriangulation()
+        val polygons = mergeTrianglesToQuadrilaterals(triangles)
+        logger.info {
+            "polygons: ${polygons.size}, " +
+                    "#triangles = ${polygons.count { it.isTriangle() }}, " +
+                    "#quadrilaterals = ${polygons.count { it.isQuadrilateral() }}"
+        }
+
+        val layout = Layout(polygons)
+        val timestamp = System.currentTimeMillis()
+        outputToJson(layout, "layout_$timestamp")
+        outputToPng(layout, "layout_$timestamp")
     }
-    outputToPng(polygons)
 }

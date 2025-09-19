@@ -4,7 +4,6 @@ import simulation.model.Edge
 import simulation.model.Point
 import simulation.model.Triangle
 import kotlin.math.hypot
-import kotlin.math.sqrt
 
 fun delaunayTriangulation(points: List<Point>): List<Triangle> {
     // Determine bounds for the super-triangle
@@ -66,34 +65,4 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
 
 fun distanceBetween(p1: Point, p2: Point): Double {
     return hypot((p1.x - p2.x), (p1.y - p2.y))
-}
-
-fun distanceFromPointToLine(point: Point, lineStart: Point, lineEnd: Point): Double {
-    val a = point.x - lineStart.x
-    val b = point.y - lineStart.y
-    val c = lineEnd.x - lineStart.x
-    val d = lineEnd.y - lineStart.y
-
-    val dot = a * c + b * d
-    val lenSq = c * c + d * d
-
-    if (lenSq == 0.0) return distanceBetween(point, lineStart)
-
-    val param = dot / lenSq
-
-    val xx = when {
-        param < 0 -> lineStart.x
-        param > 1 -> lineEnd.x
-        else -> lineStart.x + param * c
-    }
-
-    val yy = when {
-        param < 0 -> lineStart.y
-        param > 1 -> lineEnd.y
-        else -> lineStart.y + param * d
-    }
-
-    val dx = point.x - xx
-    val dy = point.y - yy
-    return sqrt(dx * dx + dy * dy)
 }

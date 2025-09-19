@@ -1,5 +1,8 @@
 package simulation.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Polygon(
     val points: Set<Point>
 ) {
