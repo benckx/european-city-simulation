@@ -7,6 +7,8 @@ import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.Polygon
 import simulation.model.Triangle
+import simulation.services.outputToJson
+import simulation.services.outputToPng
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Stream
 
@@ -114,7 +116,7 @@ fun main() {
 
         val layout = Layout(polygons)
         val timestamp = System.currentTimeMillis()
-        outputToJson(layout, "layout_$timestamp")
-        outputToPng(layout, "layout_$timestamp")
+        outputToJson(layout, fileName = "layout_$timestamp")
+        outputToPng(layout, fileName = "layout_$timestamp")
     }
 }

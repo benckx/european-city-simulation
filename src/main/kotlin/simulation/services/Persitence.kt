@@ -1,4 +1,4 @@
-package simulation
+package simulation.services
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
