@@ -1,5 +1,9 @@
 package simulation.model
 
+import simulation.model.Ladder.NextPointStrategy.MIN_ANGLE
+import simulation.model.Ladder.NextPointStrategy.MIN_DISTANCE
+import kotlin.math.sqrt
+
 /**
  * Ladder structure is a list of quasi parallel edges a series of adjacent quadrilaterals (adjacent in the same direction).
  */
@@ -7,26 +11,31 @@ data class Ladder(
     val edges: List<Edge>
 ) {
 
+    enum class NextPointStrategy {
+        MIN_ANGLE,
+        MIN_DISTANCE
+    }
+
     val size = edges.size
 
-    fun reverse(): Ladder = Ladder(edges.reversed())
-
-    fun crossingLine(ratio: Double): Line {
+    fun crossingLine(ratio: Double, nextPointStrategy: NextPointStrategy = MIN_ANGLE): Line {
         val result = mutableListOf<Edge>()
-        val ladderEdges = edges
 
         // among all 4 possible edges, find the shortest one to start with
-        val points1 = ladderEdges[0].pointsAt(ratio)
-        val points2 = ladderEdges[1].pointsAt(ratio)
+        val points1 = edges[0].pointsAt(ratio)
+        val points2 = edges[1].pointsAt(ratio)
         val firstEdge = points1.flatMap { p1 -> points2.map { p2 -> Edge(p1, p2) } }.minBy { it.length }
         result += firstEdge
 
-        var lastPoint = firstEdge.points.find { points2.contains(it) }!!
-        ladderEdges.drop(2).forEach { nextLadderEdge ->
-            val nextPoint = nextPointByMinAngle(ratio, nextLadderEdge, result.last(), lastPoint)
-//            val nextPoint = nextLadderEdge.pointsAt(ratio).minBy { it.distanceTo(lastPoint) }
-            result += Edge(lastPoint, nextPoint)
-            lastPoint = nextPoint
+        var previousPoint = firstEdge.points.find { points2.contains(it) }!!
+        edges.drop(2).forEach { nextLadderEdge ->
+            val nextPoint = when (nextPointStrategy) {
+                MIN_ANGLE -> nextPointByMinAngle(ratio, nextLadderEdge, result.last(), previousPoint)
+                MIN_DISTANCE -> nextLadderEdge.pointsAt(ratio).minBy { it.distanceTo(previousPoint) }
+            }
+
+            result += Edge(previousPoint, nextPoint)
+            previousPoint = nextPoint
         }
         return Line(result.toList())
     }
@@ -34,17 +43,17 @@ data class Ladder(
     private fun nextPointByMinAngle(
         ratio: Double,
         nextLadderEdge: Edge,
-        lastCrossingEdge: Edge,
-        lastPoint: Point
+        previousLadderEdge: Edge,
+        previousPoint: Point
     ): Point {
         return nextLadderEdge.pointsAt(ratio).minBy { point ->
-            val currentVector = Point(point.x - lastPoint.x, point.y - lastPoint.y)
-            val prevVector = Point(lastPoint.x - lastCrossingEdge.p1.x, lastPoint.y - lastCrossingEdge.p1.y)
+            val currentVector = Point(point.x - previousPoint.x, point.y - previousPoint.y)
+            val prevVector = Point(previousPoint.x - previousLadderEdge.p1.x, previousPoint.y - previousLadderEdge.p1.y)
 
             // Calculate angle between vectors using dot product
             val dotProduct = currentVector.x * prevVector.x + currentVector.y * prevVector.y
-            val magnitude1 = kotlin.math.sqrt(currentVector.x * currentVector.x + currentVector.y * currentVector.y)
-            val magnitude2 = kotlin.math.sqrt(prevVector.x * prevVector.x + prevVector.y * prevVector.y)
+            val magnitude1 = sqrt(currentVector.x * currentVector.x + currentVector.y * currentVector.y)
+            val magnitude2 = sqrt(prevVector.x * prevVector.x + prevVector.y * prevVector.y)
 
             // Return negative cosine to minimize angle (maximize cosine)
             -(dotProduct / (magnitude1 * magnitude2))

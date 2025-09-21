@@ -37,14 +37,15 @@ private fun Graphics2D.drawPoint(point: Point, thickness: Int) {
 
 fun outputToPng(
     layout: Layout,
+    fillPolygons: Boolean = false,
     clustersOfEdges: Collection<Collection<Edge>> = emptySet(),
     clustersOfPoints: Collection<Collection<Point>> = emptySet(),
+    clusterDifferentiationByColor: Boolean = true,
     pointThickness: Int = 24,
     labelsAt: Map<Point, String> = emptyMap(),
     subDirectory: String? = null,
     fileName: String = "layout"
 ) {
-    val layoutEdges = layout.polygons.flatMap { it.edges }.distinct()
     val layoutPoints = layout.polygons.flatMap { it.points }.distinct()
     val minX = layoutPoints.minOf { it.x }
     val maxX = layoutPoints.maxOf { it.x }
@@ -70,32 +71,62 @@ fun outputToPng(
     graphics.color = Color.BLACK
     graphics.fillRect(0, 0, width, height)
 
+    // fill polygons
+    if (fillPolygons) {
+        layout.polygons.forEach { polygon ->
+            graphics.color = Color.RED
+            val orderedPoints = polygon.orderedPoints().map { point -> point.shift(offsetX, offsetY) }
+            val xPoints = orderedPoints.map { it.x.toInt() }.toIntArray()
+            val yPoints = orderedPoints.map { it.y.toInt() }.toIntArray()
+            graphics.fillPolygon(xPoints, yPoints, orderedPoints.size)
+        }
+    }
+
+    // draw clusters
+    if (clusterDifferentiationByColor) {
+        // draw points
+        clustersOfPoints.forEachIndexed { index, points ->
+            val color = palette[index % palette.size]
+            graphics.color = color
+            points
+                .map { point -> point.shift(offsetX, offsetY) }
+                .forEach { graphics.drawPoint(it, pointThickness) }
+        }
+
+        // draw edges
+        graphics.stroke = BasicStroke(8f)
+        clustersOfEdges.forEachIndexed { index, edges ->
+            val color = palette[index % palette.size]
+            graphics.color = color
+            edges
+                .map { edge -> edge.shift(offsetX, offsetY) }
+                .forEach { graphics.drawEdge(it) }
+        }
+    } else {
+        graphics.color = Color.DARK_GRAY
+
+        // draw points
+        clustersOfPoints.forEach { points ->
+            points
+                .map { point -> point.shift(offsetX, offsetY) }
+                .forEach { graphics.drawPoint(it, pointThickness) }
+        }
+
+        // draw edges
+        graphics.stroke = BasicStroke(8f)
+        clustersOfEdges.forEach { edges ->
+            edges
+                .map { edge -> edge.shift(offsetX, offsetY) }
+                .forEach { graphics.drawEdge(it) }
+        }
+    }
+
     // draw layout edges
-    graphics.color = Color.DARK_GRAY
-    graphics.stroke = BasicStroke(8f)
-    layoutEdges
+    graphics.color = Color.LIGHT_GRAY
+    graphics.stroke = BasicStroke(12f)
+    layout.polygons.flatMap { it.edges }.distinct()
         .map { edge -> edge.shift(offsetX, offsetY) }
         .forEach { graphics.drawEdge(it) }
-
-    // draw edges
-    clustersOfEdges.forEachIndexed { index, cluster ->
-        val color = palette[index % palette.size]
-        graphics.color = color
-        graphics.stroke = BasicStroke(12f)
-        cluster
-            .map { edge -> edge.shift(offsetX, offsetY) }
-            .forEach { graphics.drawEdge(it) }
-    }
-
-    // draw points
-    clustersOfPoints.forEachIndexed { index, points ->
-        val color = palette[index % palette.size]
-        graphics.color = color
-        graphics.stroke = BasicStroke(12f)
-        points
-            .map { point -> point.shift(offsetX, offsetY) }
-            .forEach { graphics.drawPoint(it, pointThickness) }
-    }
 
     // draw text
     graphics.color = Color.WHITE

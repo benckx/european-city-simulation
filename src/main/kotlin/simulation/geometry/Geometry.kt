@@ -46,7 +46,7 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
             }
         }
 
-        // Remove bad triangles from the simulation.main list
+        // Remove bad triangles from the simulation.services.main list
         triangles.removeAll(badTriangles)
 
         // Create new triangles from the polygon edges and the new point
