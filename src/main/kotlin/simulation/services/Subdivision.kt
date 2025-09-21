@@ -8,10 +8,9 @@ import kotlin.collections.forEach
 import kotlin.collections.plusAssign
 
 /**
- * Detect all clusters of facing edges (i.e. a ladder structure) in the layout.
- * Each quadrilateral can only belong to one cluster.
- * Each edge can only belong to one cluster.
- * An edge belongs to a cluster if it is opposite to an edge that belongs to the cluster.
+ * Detect all clusters of facing edges in a series of contiguous quadrilaterals (i.e. a ladder structure)..
+ * Each quadrilateral can only belong to one [Ladder].
+ * Each [Edge] can only belong to one [Ladder] structure.
  *
  * @param layout the layout to analyze
  * @return a set of clusters, each cluster is a set of edges
