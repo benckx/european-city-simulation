@@ -9,7 +9,7 @@ and I've noticed procedural city layouts in video games usually follow a grid pa
 However, Europans cities are a bit more chaotic. So I've been thinking about how a European city layout could be
 generated.
 
-I'm not sure how far I'll take this. It's a little bit of fun. I might render the city in 3D
+I'm not sure how far I'll take this; it's just a little bit of fun. I might render the city in 3D
 with [jMonkeyEngine](https://github.com/jMonkeyEngine/jmonkeyengine) later, and maybe turn this into a little game.
 
 It's still very much a work in progress, so I won't spend too much time on documentation at the moment.
