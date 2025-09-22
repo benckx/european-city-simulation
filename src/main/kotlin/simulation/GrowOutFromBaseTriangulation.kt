@@ -1,6 +1,6 @@
 package simulation
 
-import simulation.geometry.distanceBetween
+import simulation.utils.distanceBetween
 import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.Triangle

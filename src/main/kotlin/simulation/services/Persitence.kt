@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package simulation.services
 
 import kotlinx.serialization.encodeToString

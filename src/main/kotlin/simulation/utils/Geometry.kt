@@ -1,4 +1,4 @@
-package simulation.geometry
+package simulation.utils
 
 import simulation.model.Edge
 import simulation.model.Point
@@ -6,7 +6,7 @@ import simulation.model.Triangle
 import kotlin.math.hypot
 
 fun delaunayTriangulation(points: List<Point>): List<Triangle> {
-    // Determine bounds for the super-triangle
+    // determine bounds for the super-triangle
     val minX = points.minOf { it.x }
     val maxX = points.maxOf { it.x }
     val minY = points.minOf { it.y }
@@ -17,19 +17,19 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
     val midX = (minX + maxX) / 2
     val midY = (minY + maxY) / 2
 
-    // Create a super-triangle that encloses all points
+    // create a super-triangle that encloses all points
     val p1 = Point(midX - 2 * maxDelta, midY - maxDelta)
     val p2 = Point(midX + 2 * maxDelta, midY - maxDelta)
     val p3 = Point(midX, midY + 2 * maxDelta)
 
     val triangles = mutableListOf(Triangle(p1, p2, p3))
 
-    // Main insertion loop
+    // main insertion loop
     for (p in points) {
         val badTriangles = mutableListOf<Triangle>()
         val polygon = mutableSetOf<Edge>()
 
-        // Find all triangles whose circumcircle contains the point
+        // find all triangles whose circumcircle contains the point
         for (t in triangles) {
             if (t.isPointInCircumcircle(p)) {
                 badTriangles.add(t)
@@ -37,7 +37,7 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
             }
         }
 
-        // Remove shared edges from the polygon
+        // remove shared edges from the polygon
         for (t in badTriangles) {
             t.edges.forEach { edge ->
                 if (badTriangles.count { it.edges.contains(edge) } > 1) {
@@ -46,16 +46,16 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
             }
         }
 
-        // Remove bad triangles from the simulation.services.main list
+        // remove bad triangles from the simulation.services.main list
         triangles.removeAll(badTriangles)
 
-        // Create new triangles from the polygon edges and the new point
+        // create new triangles from the polygon edges and the new point
         for (edge in polygon) {
             triangles.add(Triangle(edge.p1, edge.p2, p))
         }
     }
 
-    // Final cleanup: remove any triangles that contain a vertex from the super-triangle
+    // final cleanup: remove any triangles that contain a vertex from the super-triangle
     return triangles.filterNot { t ->
         t.a == p1 || t.a == p2 || t.a == p3 ||
                 t.b == p1 || t.b == p2 || t.b == p3 ||

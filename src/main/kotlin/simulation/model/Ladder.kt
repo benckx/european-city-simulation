@@ -50,12 +50,12 @@ data class Ladder(
             val currentVector = Point(point.x - previousPoint.x, point.y - previousPoint.y)
             val prevVector = Point(previousPoint.x - previousLadderEdge.p1.x, previousPoint.y - previousLadderEdge.p1.y)
 
-            // Calculate angle between vectors using dot product
+            // calculate angle between vectors using dot product
             val dotProduct = currentVector.x * prevVector.x + currentVector.y * prevVector.y
             val magnitude1 = sqrt(currentVector.x * currentVector.x + currentVector.y * currentVector.y)
             val magnitude2 = sqrt(prevVector.x * prevVector.x + prevVector.y * prevVector.y)
 
-            // Return negative cosine to minimize angle (maximize cosine)
+            // return negative cosine to minimize angle (maximize cosine)
             -(dotProduct / (magnitude1 * magnitude2))
         }
     }

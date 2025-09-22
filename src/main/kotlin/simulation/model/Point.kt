@@ -1,7 +1,8 @@
 package simulation.model
 
 import kotlinx.serialization.Serializable
-import simulation.geometry.distanceBetween
+import simulation.utils.distanceBetween
+import kotlin.math.abs
 
 @Serializable
 data class Point(
@@ -14,5 +15,8 @@ data class Point(
 
     fun distanceTo(other: Point): Double =
         distanceBetween(this, other)
+
+    fun equalsWithTolerance(other: Point, tolerance: Double): Boolean =
+        abs(x - other.x) <= tolerance && abs(y - other.y) <= tolerance
 
 }

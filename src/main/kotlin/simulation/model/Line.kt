@@ -14,7 +14,4 @@ data class Line(val edges: List<Edge>) {
     val size: Int
         get() = edges.size
 
-    fun shareAnyPointWith(other: Line): Boolean =
-        edges.any { edge -> other.edges.any { it.sharesPointWith(edge) } }
-
 }

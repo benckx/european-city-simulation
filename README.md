@@ -14,7 +14,7 @@ with [jMonkeyEngine](https://github.com/jMonkeyEngine/jmonkeyengine) later, and 
 
 It's still very much a work in progress, so I won't spend too much time on documentation at the moment.
 
-<img src="images/layout01.png" alt="drawing" width="1000"/>
+<img src="images/layout02.png" alt="drawing" width="900"/>
 
 # How To
 
