@@ -24,7 +24,7 @@ data class Layout(
 
     fun splitQuadrilateralsAlongEdges(splitEdges: Collection<Edge>): Layout {
         val newPolygons = polygons.toMutableList()
-        val newSecondaryEdges = splitEdges.toMutableList()
+        val newSecondaryEdges = secondaryEdges.toMutableList()
 
         quadrilaterals().forEach { quadrilateral ->
             val polygonCrossingEdges = splitEdges
@@ -39,6 +39,7 @@ data class Layout(
                     val crossingEdge = polygonCrossingEdges.first()
                     newPolygons += quadrilateral.splitQuadrilateralInTwo(crossingEdge)
                     newPolygons -= quadrilateral
+                    newSecondaryEdges += crossingEdge
                 }
 
                 2 -> {
@@ -48,8 +49,6 @@ data class Layout(
                     newPolygons += splitResult.polygons
                     newPolygons -= quadrilateral
                     newSecondaryEdges += splitResult.secondaryEdges
-                    newSecondaryEdges -= crossingEdge1
-                    newSecondaryEdges -= crossingEdge2
                 }
 
                 else -> {
@@ -58,7 +57,7 @@ data class Layout(
             }
         }
 
-        return Layout(newPolygons, newSecondaryEdges + secondaryEdges)
+        return Layout(newPolygons, newSecondaryEdges)
     }
 
 }
