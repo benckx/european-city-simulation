@@ -6,7 +6,7 @@
 
 I've been playing a lot of [Transport Fever 2](https://store.steampowered.com/app/1066780/Transport_Fever_2/) recently,
 and I've noticed procedural city layouts in video games usually follow a grid pattern, similar to many US cities.
-However, Europans cities are a bit more chaotic. So I've been thinking about how a European city layout could be
+However, Europans cities are a bit more irregular. So I've been thinking about how a European city layout could be
 generated.
 
 I'm not sure how far I'll take this; it's just a little bit of fun. I might render the city in 3D
