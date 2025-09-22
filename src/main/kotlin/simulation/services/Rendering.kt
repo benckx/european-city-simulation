@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage
 import java.awt.image.BufferedImage.TYPE_INT_RGB
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.text.toInt
 
 private val logger = KotlinLogging.logger {}
 
@@ -148,7 +149,6 @@ fun outputToPng(
     // draw main polygon edges
     val excludedFromMainPolygonEdges = (clustersOfEdges.flatten().distinct() + layout.secondaryEdges).toSet()
     graphics.color = mainEdgeColor
-//    graphics.stroke = BasicStroke(mainEdgeStroke)
     graphics.stroke = BasicStroke(mainEdgeStroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
     layout.polygons.flatMap { it.edges }.distinct()
         .filterNot { mainEdge -> excludedFromMainPolygonEdges.contains(mainEdge) }
@@ -156,10 +156,36 @@ fun outputToPng(
         .forEach { edge -> graphics.drawEdge(edge) }
 
     // draw text
-    graphics.color = Color.WHITE
     graphics.font = graphics.font.deriveFont(40f)
+    val fontMetrics = graphics.fontMetrics
     labelsAt.forEach { (point, text) ->
+        // TODO: move the following to standalone function
         val shiftedPoint = point.shift(offsetX, offsetY)
+        val textWidth = fontMetrics.stringWidth(text)
+        val textHeight = fontMetrics.height
+        // TODO: differentiate padding for width and height
+        val padding = 4
+
+        // draw black rectangle background
+        graphics.color = Color.BLACK
+        graphics.fillRect(
+            shiftedPoint.x.toInt() - padding,
+            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - padding,
+            textWidth + 2 * padding,
+            textHeight + 2 * padding
+        )
+
+        // draw thin white border
+        graphics.color = Color.WHITE
+        graphics.stroke = BasicStroke(1f)
+        graphics.drawRect(
+            shiftedPoint.x.toInt() - padding,
+            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - padding,
+            textWidth + 2 * padding,
+            textHeight + 2 * padding
+        )
+
+        // Draw white text
         graphics.drawString(text, shiftedPoint.x.toInt(), shiftedPoint.y.toInt())
     }
 

@@ -1,11 +1,9 @@
 package simulation.services
 
-import simulation.model.Edge
-import simulation.model.Ladder
-import simulation.model.Layout
-import simulation.model.Polygon
-import simulation.model.Triangle
-import kotlin.collections.plusAssign
+import io.github.oshai.kotlinlogging.KotlinLogging
+import simulation.model.*
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Merges pairs of triangles that share a hypotenuse into quadrilaterals.
@@ -102,7 +100,7 @@ private fun detectLadderFromPairOfNeighbours(
     allQuadrilaterals: List<Polygon>,
     pairOfNeighbors: Set<Polygon>
 ): Ladder {
-    val clusterEdges = mutableSetOf<Edge>()
+    val ladderEdges = mutableSetOf<Edge>()
 
     val p1 = pairOfNeighbors.first()
     val p2 = pairOfNeighbors.last()
@@ -114,7 +112,7 @@ private fun detectLadderFromPairOfNeighbours(
 
     val oppositeEdge1 = p1.oppositeEdge(sharedEdge)
     val oppositeEdge2 = p2.oppositeEdge(sharedEdge)
-    clusterEdges += listOf(sharedEdge, oppositeEdge1, oppositeEdge2)
+    ladderEdges += listOf(sharedEdge, oppositeEdge1, oppositeEdge2)
 
     val otherQuadrilaterals = allQuadrilaterals.filter { other -> other != p1 && other != p2 }.toSet()
     var continueSearch = true
@@ -127,22 +125,20 @@ private fun detectLadderFromPairOfNeighbours(
             val otherQuadrilateral = otherQuadrilaterals.find { other -> other.edges.contains(edge) }
             if (otherQuadrilateral != null) {
                 val oppositeEdge = otherQuadrilateral.oppositeEdge(edge)
-                if (!clusterEdges.contains(oppositeEdge)) {
+                if (!ladderEdges.contains(oppositeEdge)) {
                     newEdges += oppositeEdge
                 }
             }
         }
 
         continueSearch = newEdges.isNotEmpty()
-        clusterEdges += newEdges
+        ladderEdges += newEdges
         nextEdges = newEdges.toList()
     }
 
     // order edges
-    val clusterEdgeList = clusterEdges.toList()
-
     // if only 3 edges, return in the requested order
-    if (clusterEdgeList.size == 3) {
+    if (ladderEdges.size == 3) {
         return Ladder(listOf(oppositeEdge1, sharedEdge, oppositeEdge2))
     }
 
@@ -150,23 +146,27 @@ private fun detectLadderFromPairOfNeighbours(
     // find terminal edge (only one neighbor in cluster)
     fun edgeNeighbors(edge: Edge): List<Edge> =
         allQuadrilaterals
-            .filter { it.edges.contains(edge) }
-            .flatMap { quad -> quad.edges }
-            .filter { it in clusterEdges && it != edge }
+            .filter { quadrilateral -> quadrilateral.edges.contains(edge) }
+            .flatMap { quadrilateral -> quadrilateral.edges }
+            .filter { it in ladderEdges && it != edge }
 
-    val terminalEdge = clusterEdgeList.find { edgeNeighbors(it).size == 1 }
-        ?: clusterEdgeList.first()
+    val terminalEdge = ladderEdges.find { edgeNeighbors(it).size == 1 }
+        ?: ladderEdges.first()
 
     val orderedEdges = mutableListOf<Edge>()
     val visitedEdges = mutableSetOf<Edge>()
     var current = terminalEdge
 
-    while (orderedEdges.size < clusterEdgeList.size) {
+    while (orderedEdges.size < ladderEdges.size) {
         orderedEdges += current
         visitedEdges += current
-        val next = clusterEdgeList.firstOrNull { it !in visitedEdges && edgeNeighbors(current).contains(it) }
+        val next = ladderEdges.firstOrNull { it !in visitedEdges && edgeNeighbors(current).contains(it) }
         if (next == null) break
         current = next
+    }
+
+    if (orderedEdges.size != ladderEdges.size) {
+        logger.warn { "orderedEdges.size (${orderedEdges.size}) != ladderEdges.size (${ladderEdges.size})" }
     }
 
     return Ladder(orderedEdges)

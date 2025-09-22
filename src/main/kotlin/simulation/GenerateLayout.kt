@@ -1,6 +1,7 @@
 package simulation
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import simulation.model.Edge
 import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
@@ -16,15 +17,16 @@ private fun ladderLabels(ladders: List<Ladder>): Map<Point, String> {
     return ladders.flatMapIndexed { ladderIndex, ladder ->
         ladder.edges.mapIndexed { edgeIndex, edge ->
             val point = edge.pointsAt(.5).first()
-            val label = "[${ladderIndex + 1}] ${edgeIndex + 1}"
+            val ladderLetter = ('a' + ladderIndex).toString()
+            val label = "[$ladderLetter] ${edgeIndex + 1}"
             point to label
         }
     }.toMap()
 }
 
-private fun numberOfCrossingsLabels(layout: Layout): Map<Point, String> {
+private fun numberOfCrossingsLabels(layout: Layout, crossLinesEdges: List<Edge>): Map<Point, String> {
     return layout.quadrilaterals().mapNotNull { quadrilateral ->
-        val count = layout.secondaryEdges.count { edge -> quadrilateral.containsMidPointOf(edge) }
+        val count = crossLinesEdges.count { edge -> quadrilateral.containsMidPointOf(edge) }
         if (count > 0) {
             val centroid = quadrilateral.findCentroid()
             centroid to count.toString()
@@ -59,14 +61,15 @@ fun main() {
         layout = layout,
         clustersOfEdges = ladders.map { it.edges },
         labelsAt = ladderLabels(ladders),
-        fileName = "${output}_ladders"
+        fileName = "${output}_ladders",
+        clusterEdgeStroke = 12f,
     )
 
     // render splitting edges blueprint info
     outputToPng(
         layout = layout,
         clustersOfEdges = crossLines.map { it.edges },
-        labelsAt = numberOfCrossingsLabels(layout),
+//        labelsAt = numberOfCrossingsLabels(layout, crossLinesEdges),
         fileName = "${output}_split_blueprint"
     )
 
