@@ -12,6 +12,9 @@ data class Edge(val p1: Point, val p2: Point) {
     val points
         get() = setOf(p1, p2)
 
+    fun shift(offset: Point): Edge =
+        Edge(p1.shift(offset), p2.shift(offset))
+
     fun shift(dx: Double, dy: Double): Edge =
         Edge(p1.shift(dx, dy), p2.shift(dx, dy))
 

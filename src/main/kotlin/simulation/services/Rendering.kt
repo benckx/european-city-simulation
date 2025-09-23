@@ -5,9 +5,11 @@ import simulation.model.Edge
 import simulation.model.Layout
 import simulation.model.Point
 import java.awt.BasicStroke
+import java.awt.BasicStroke.CAP_ROUND
+import java.awt.BasicStroke.JOIN_ROUND
 import java.awt.Color
 import java.awt.Graphics2D
-import java.awt.RenderingHints
+import java.awt.RenderingHints.*
 import java.awt.image.BufferedImage
 import java.awt.image.BufferedImage.TYPE_INT_RGB
 import java.io.File
@@ -76,6 +78,7 @@ fun outputToPng(
     // calculate offsets to center content
     val offsetX = padding - minX
     val offsetY = padding - minY
+    val offset = Point(offsetX, offsetY)
 
     logger.debug { "offset: ${offsetX}x${offsetY}" }
 
@@ -84,8 +87,8 @@ fun outputToPng(
     val graphics = image.createGraphics()
 
     // anti-aliasing
-    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-    graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+    graphics.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON)
+    graphics.setRenderingHint(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON)
 
     // background color
     graphics.color = Color.BLACK
@@ -95,7 +98,7 @@ fun outputToPng(
     if (fillPolygons) {
         layout.polygons.forEachIndexed { index, polygon ->
             graphics.color = palette2[index % palette2.size]
-            val orderedPoints = polygon.orderedPoints().map { point -> point.shift(offsetX, offsetY) }
+            val orderedPoints = polygon.orderedPoints().map { point -> point.shift(offset) }
             val xPoints = orderedPoints.map { it.x.toInt() }.toIntArray()
             val yPoints = orderedPoints.map { it.y.toInt() }.toIntArray()
             graphics.fillPolygon(xPoints, yPoints, orderedPoints.size)
@@ -109,7 +112,7 @@ fun outputToPng(
             val color = palette1[index % palette1.size]
             graphics.color = color
             points
-                .map { point -> point.shift(offsetX, offsetY) }
+                .map { point -> point.shift(offset) }
                 .forEach { graphics.drawPoint(it, pointThickness) }
         }
 
@@ -119,7 +122,7 @@ fun outputToPng(
             val color = palette1[index % palette1.size]
             graphics.color = color
             edges
-                .map { edge -> edge.shift(offsetX, offsetY) }
+                .map { edge -> edge.shift(offset) }
                 .forEach { graphics.drawEdge(it) }
         }
     } else {
@@ -128,7 +131,7 @@ fun outputToPng(
         // draw points
         clustersOfPoints.forEach { points ->
             points
-                .map { point -> point.shift(offsetX, offsetY) }
+                .map { point -> point.shift(offset) }
                 .forEach { graphics.drawPoint(it, pointThickness) }
         }
 
@@ -136,7 +139,7 @@ fun outputToPng(
         graphics.stroke = BasicStroke(clusterEdgeStroke)
         clustersOfEdges.forEach { edges ->
             edges
-                .map { edge -> edge.shift(offsetX, offsetY) }
+                .map { edge -> edge.shift(offset) }
                 .forEach { graphics.drawEdge(it) }
         }
     }
@@ -145,13 +148,13 @@ fun outputToPng(
     graphics.color = secondaryEdgeColor
     graphics.stroke = BasicStroke(secondaryEdgeStroke)
     layout.secondaryEdges
-        .map { edge -> edge.shift(offsetX, offsetY) }
+        .map { edge -> edge.shift(offset) }
         .forEach { edge -> graphics.drawEdge(edge) }
 
     // draw main polygon edges
     val excludedFromMainPolygonEdges = (clustersOfEdges.flatten().distinct() + layout.secondaryEdges).toSet()
     graphics.color = mainEdgeColor
-    graphics.stroke = BasicStroke(mainEdgeStroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+    graphics.stroke = BasicStroke(mainEdgeStroke, CAP_ROUND, JOIN_ROUND)
     layout.polygons.flatMap { it.edges }.distinct()
         .filterNot { mainEdge -> excludedFromMainPolygonEdges.contains(mainEdge) }
         .map { edge -> edge.shift(offsetX, offsetY) }
@@ -159,35 +162,7 @@ fun outputToPng(
 
     // draw text
     graphics.font = graphics.font.deriveFont(40f)
-    val fontMetrics = graphics.fontMetrics
-    labelsAt.forEach { (point, text) ->
-        // TODO: move the following to standalone function
-        val shiftedPoint = point.shift(offsetX, offsetY)
-        val textWidth = fontMetrics.stringWidth(text)
-        val textHeight = fontMetrics.height
-
-        // draw black rectangle background
-        graphics.color = Color.BLACK
-        graphics.fillRect(
-            shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
-            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
-            textWidth + 2 * LABEL_PADDING_WIDTH,
-            textHeight + 2 * LABEL_PADDING_HEIGHT
-        )
-
-        // draw thin white border
-        graphics.color = Color.WHITE
-        graphics.stroke = BasicStroke(1f)
-        graphics.drawRect(
-            shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
-            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
-            textWidth + 2 * LABEL_PADDING_WIDTH,
-            textHeight + 2 * LABEL_PADDING_HEIGHT
-        )
-
-        // draw white text
-        graphics.drawString(text, shiftedPoint.x.toInt() - textWidth / 2, shiftedPoint.y.toInt() - textHeight / 2)
-    }
+    labelsAt.forEach { (point, label) -> graphics.drawLabel(point, label, offset) }
 
     graphics.dispose()
 
@@ -228,4 +203,34 @@ private fun Graphics2D.drawPoint(point: Point, thickness: Int) {
         thickness,
         thickness
     )
+}
+
+private fun Graphics2D.drawLabel(point: Point, label: String, offset: Point) {
+    val fontMetrics = fontMetrics
+
+    val shiftedPoint = point.shift(offset)
+    val textWidth = fontMetrics.stringWidth(label)
+    val textHeight = fontMetrics.height
+
+    // draw black rectangle background
+    color = Color.BLACK
+    fillRect(
+        shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
+        shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
+        textWidth + 2 * LABEL_PADDING_WIDTH,
+        textHeight + 2 * LABEL_PADDING_HEIGHT
+    )
+
+    // draw thin white border
+    color = Color.WHITE
+    stroke = BasicStroke(1f)
+    drawRect(
+        shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
+        shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
+        textWidth + 2 * LABEL_PADDING_WIDTH,
+        textHeight + 2 * LABEL_PADDING_HEIGHT
+    )
+
+    // draw white text
+    drawString(label, shiftedPoint.x.toInt() - textWidth / 2, shiftedPoint.y.toInt() - textHeight / 2)
 }

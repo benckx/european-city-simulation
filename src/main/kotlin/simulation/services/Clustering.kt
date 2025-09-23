@@ -1,7 +1,5 @@
 package simulation.services
 
-import simulation.model.Ladder
-import simulation.model.Layout
 import simulation.model.Polygon
 import simulation.model.Triangle
 
