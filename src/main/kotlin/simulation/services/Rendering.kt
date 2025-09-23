@@ -12,7 +12,6 @@ import java.awt.image.BufferedImage
 import java.awt.image.BufferedImage.TYPE_INT_RGB
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.text.toInt
 
 private val logger = KotlinLogging.logger {}
 
@@ -43,6 +42,9 @@ private val palette2 =
         "997B66"
     ).map { Color.decode("#$it") }
 
+private const val LABEL_PADDING_WIDTH = 4
+private const val LABEL_PADDING_HEIGHT = 2
+
 fun outputToPng(
     layout: Layout,
     fillPolygons: Boolean = false,
@@ -66,12 +68,12 @@ fun outputToPng(
     val minY = layoutPoints.minOf { it.y }
     val maxY = layoutPoints.maxOf { it.y }
 
-    // Calculate dynamic image dimensions with padding
-    val padding = 50.0
+    // calculate dynamic image dimensions with padding
+    val padding = 80.0
     val width = (maxX - minX + 2 * padding).toInt()
     val height = (maxY - minY + 2 * padding).toInt()
 
-    // Calculate offsets to center content
+    // calculate offsets to center content
     val offsetX = padding - minX
     val offsetY = padding - minY
 
@@ -163,30 +165,28 @@ fun outputToPng(
         val shiftedPoint = point.shift(offsetX, offsetY)
         val textWidth = fontMetrics.stringWidth(text)
         val textHeight = fontMetrics.height
-        // TODO: differentiate padding for width and height
-        val padding = 4
 
         // draw black rectangle background
         graphics.color = Color.BLACK
         graphics.fillRect(
-            shiftedPoint.x.toInt() - padding,
-            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - padding,
-            textWidth + 2 * padding,
-            textHeight + 2 * padding
+            shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
+            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
+            textWidth + 2 * LABEL_PADDING_WIDTH,
+            textHeight + 2 * LABEL_PADDING_HEIGHT
         )
 
         // draw thin white border
         graphics.color = Color.WHITE
         graphics.stroke = BasicStroke(1f)
         graphics.drawRect(
-            shiftedPoint.x.toInt() - padding,
-            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - padding,
-            textWidth + 2 * padding,
-            textHeight + 2 * padding
+            shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
+            shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
+            textWidth + 2 * LABEL_PADDING_WIDTH,
+            textHeight + 2 * LABEL_PADDING_HEIGHT
         )
 
-        // Draw white text
-        graphics.drawString(text, shiftedPoint.x.toInt(), shiftedPoint.y.toInt())
+        // draw white text
+        graphics.drawString(text, shiftedPoint.x.toInt() - textWidth / 2, shiftedPoint.y.toInt() - textHeight / 2)
     }
 
     graphics.dispose()

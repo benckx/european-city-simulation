@@ -149,7 +149,7 @@ data class Polygon(
                 ?.let { edge -> halfPolygons[1].splitQuadrilateralInTwo(edge) }
                 .orEmpty()
 
-            require(newPolygons.size == 4)
+            require(newPolygons.size == 4) { "expected to have 4 new polygons, but got ${newPolygons.size}" }
 
             // calculate the two other sub-edges, resulting from the second split
             val approximationSubEdges2 = crossingEdge1.splitAtCrossingWith(crossingEdge2)

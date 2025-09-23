@@ -5,7 +5,7 @@ import simulation.model.Ladder.NextPointStrategy.MIN_DISTANCE
 import kotlin.math.sqrt
 
 /**
- * Ladder structure is a list of quasi parallel edges a series of adjacent quadrilaterals (adjacent in the same direction).
+ * Ladder structure is a list of quasi parallel (non-touching) edges from a series of adjacent quadrilaterals.
  */
 data class Ladder(
     val edges: List<Edge>
