@@ -53,7 +53,7 @@ fun outputToPng(
     clustersOfEdges: Collection<Collection<Edge>> = emptySet(),
     clustersOfPoints: Collection<Collection<Point>> = emptySet(),
     clusterDifferentiationByColor: Boolean = true,
-    mainEdgeColor: Color = Color.LIGHT_GRAY,
+    mainEdgeColor: Color = Color.DARK_GRAY,
     secondaryEdgeColor: Color = Color.DARK_GRAY,
     clusterEdgeColor: Color = Color.DARK_GRAY,
     mainEdgeStroke: Float = 12f,
@@ -61,6 +61,7 @@ fun outputToPng(
     clusterEdgeStroke: Float = 6f,
     pointThickness: Int = 24,
     labelsAt: Map<Point, String> = emptyMap(),
+    fontSize: Float = 40f,
     subDirectory: String? = null,
     fileName: String = "layout"
 ) {
@@ -161,7 +162,7 @@ fun outputToPng(
         .forEach { edge -> graphics.drawEdge(edge) }
 
     // draw text
-    graphics.font = graphics.font.deriveFont(40f)
+    graphics.font = graphics.font.deriveFont(fontSize)
     labelsAt.forEach { (point, label) -> graphics.drawLabel(point, label, offset) }
 
     graphics.dispose()
@@ -207,30 +208,32 @@ private fun Graphics2D.drawPoint(point: Point, thickness: Int) {
 
 private fun Graphics2D.drawLabel(point: Point, label: String, offset: Point) {
     val fontMetrics = fontMetrics
+    val lines = label.split("\n")
 
     val shiftedPoint = point.shift(offset)
-    val textWidth = fontMetrics.stringWidth(label)
-    val textHeight = fontMetrics.height
+    val maxTextWidth = lines.maxOf { fontMetrics.stringWidth(it) }
+    val lineHeight = fontMetrics.height
+    val totalTextHeight = lineHeight * lines.size
+
+    val labelWidth = maxTextWidth + 2 * LABEL_PADDING_WIDTH
+    val labelHeight = totalTextHeight + 2 * LABEL_PADDING_HEIGHT
+    val labelContainerX = shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - maxTextWidth / 2
+    val labelContainerY = shiftedPoint.y.toInt() - LABEL_PADDING_HEIGHT - totalTextHeight / 2
 
     // draw black rectangle background
     color = Color.BLACK
-    fillRect(
-        shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
-        shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
-        textWidth + 2 * LABEL_PADDING_WIDTH,
-        textHeight + 2 * LABEL_PADDING_HEIGHT
-    )
+    fillRect(labelContainerX, labelContainerY, labelWidth, labelHeight)
 
     // draw thin white border
     color = Color.WHITE
     stroke = BasicStroke(1f)
-    drawRect(
-        shiftedPoint.x.toInt() - LABEL_PADDING_WIDTH - textWidth / 2,
-        shiftedPoint.y.toInt() - textHeight + fontMetrics.descent - LABEL_PADDING_HEIGHT - textHeight / 2,
-        textWidth + 2 * LABEL_PADDING_WIDTH,
-        textHeight + 2 * LABEL_PADDING_HEIGHT
-    )
+    drawRect(labelContainerX, labelContainerY, labelWidth, labelHeight)
 
-    // draw white text
-    drawString(label, shiftedPoint.x.toInt() - textWidth / 2, shiftedPoint.y.toInt() - textHeight / 2)
+    // draw white text line by line
+    lines.forEachIndexed { index, line ->
+        val textWidth = fontMetrics.stringWidth(line)
+        val labelX = shiftedPoint.x.toInt() - textWidth / 2
+        val labelY = shiftedPoint.y.toInt() - totalTextHeight / 2 + (index + 1) * lineHeight - fontMetrics.descent
+        drawString(line, labelX, labelY)
+    }
 }

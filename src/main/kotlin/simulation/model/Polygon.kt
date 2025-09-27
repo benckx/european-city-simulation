@@ -2,7 +2,7 @@ package simulation.model
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
-import kotlin.collections.plusAssign
+import kotlin.math.abs
 import kotlin.math.atan2
 
 private val logger = KotlinLogging.logger {}
@@ -46,6 +46,16 @@ data class Polygon(
         return edges.find { edge -> edge != baseEdge && !edge.sharesPointWith(baseEdge) }!!
     }
 
+    fun oppositeEdgesTuples(): Pair<OppositeEdgesTuple, OppositeEdgesTuple> {
+        require(isQuadrilateral()) { "The polygon must be a quadrilateral to have 2 pairs of facing edges" }
+        val e1 = edges.random()
+        val e2 = oppositeEdge(e1)
+        val pair1 = Pair(e1, e2)
+        val otherEdges = edges.filter { e1 != it && e2 != it }
+        val pair2 = Pair(otherEdges[0], otherEdges[1])
+        return OppositeEdgesTuple(pair1) to OppositeEdgesTuple(pair2)
+    }
+
     /**
      * Order the points in clockwise, convexly order around the centroid
      */
@@ -56,6 +66,60 @@ data class Polygon(
         return points.sortedBy { point ->
             atan2(point.y - center.y, point.x - center.x)
         }
+    }
+
+    /**
+     * Assuming is convex
+     */
+    fun area(): Double {
+        val orderedPoints = orderedPoints()
+        var area = 0.0
+
+        for (i in orderedPoints.indices) {
+            val j = (i + 1) % orderedPoints.size
+            area += orderedPoints[i].x * orderedPoints[j].y
+            area -= orderedPoints[j].x * orderedPoints[i].y
+        }
+
+        return abs(area) / 2.0
+    }
+
+    fun angles(): List<Double> {
+        val ordered = orderedPoints()
+        val n = ordered.size
+        val angles = mutableListOf<Double>()
+
+        for (i in ordered.indices) {
+            val prev = ordered[(i - 1 + n) % n]
+            val curr = ordered[i]
+            val next = ordered[(i + 1) % n]
+
+            val v1x = prev.x - curr.x
+            val v1y = prev.y - curr.y
+            val v2x = next.x - curr.x
+            val v2y = next.y - curr.y
+
+            val dot = v1x * v2x + v1y * v2y
+            val det = v1x * v2y - v1y * v2x
+            val angle = abs(atan2(det, dot))
+            angles.add(Math.toDegrees(angle))
+        }
+        return angles
+    }
+
+    fun quadrilateralIrregularityIndex(): Double {
+        require(isQuadrilateral()) { "Must be a quadrilateral to calculate the irregularity index" }
+        val tuples = oppositeEdgesTuples()
+        return (tuples.first.ratioOfPair() + tuples.second.ratioOfPair()) / 2
+    }
+
+    fun quadrilateralElongationIndex(): Double {
+        require(isQuadrilateral()) { "Must be a quadrilateral to calculate the elongation index" }
+
+        val pairs = oppositeEdgesTuples()
+        val lengthAverage1 = pairs.first.avgLength()
+        val lengthAverage2 = pairs.second.avgLength()
+        return maxOf(lengthAverage1, lengthAverage2) / minOf(lengthAverage1, lengthAverage2)
     }
 
     fun isConvex(): Boolean {
@@ -107,6 +171,7 @@ data class Polygon(
         return inside
     }
 
+    // 1x2
     fun splitQuadrilateralInTwo(crossingEdge: Edge): List<Polygon> {
         require(isQuadrilateral())
 
@@ -125,6 +190,7 @@ data class Polygon(
         }
     }
 
+    // 2x2 (with intersection)
     fun splitQuadrilateralInFourAtIntersection(crossingEdge1: Edge, crossingEdge2: Edge): Layout {
         require(isQuadrilateral())
 
