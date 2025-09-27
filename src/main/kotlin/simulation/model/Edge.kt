@@ -39,6 +39,19 @@ data class Edge(val p1: Point, val p2: Point) {
         return setOf(Point(x1, y1), Point(x2, y2))
     }
 
+    fun pointsDividedInto(parts: Int): List<Point> {
+        require(parts > 1) { "Parts must be greater than 1" }
+        val divisionFactor = 1.0 / parts
+        return (1 until parts)
+            .map { i ->
+                val percentage = i * divisionFactor
+                val x = p1.x + (p2.x - p1.x) * percentage
+                val y = p1.y + (p2.y - p1.y) * percentage
+                Point(x, y)
+            }
+            .toList()
+    }
+
     fun intersectionPoint(edge: Edge): Point? {
         val x1 = p1.x
         val y1 = p1.y

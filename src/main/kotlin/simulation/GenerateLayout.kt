@@ -10,7 +10,6 @@ import simulation.services.createBaseTriangulation
 import simulation.services.mergeTrianglesToQuadrilaterals
 import simulation.services.outputToPng
 import kotlin.math.ceil
-import kotlin.math.floor
 
 private val logger = KotlinLogging.logger {}
 
@@ -54,7 +53,7 @@ private fun subDivisionLabels(layout: Layout): Map<Point, String> {
 }
 
 private fun quadrilateralSubdivision(q: Quadrilateral): Pair<Int, Int>? {
-    if (q.irregularityIndex() < 1) {
+    if (q.irregularityIndex() <= .6) {
         val maxEdgeLength = 110
         val pairs = q.oppositeEdgesTuples().toList()
         val shortEdges = pairs.minBy { it.avgLength() }
@@ -128,14 +127,36 @@ fun main() {
             )
         )
 
+        val subdivisions = splitLayout
+            .quadrilaterals()
+            .mapNotNull { quadrilateral ->
+                val divisor = quadrilateralSubdivision(quadrilateral)
+                if (divisor != null) {
+                    val shortDiv = minOf(divisor.first, divisor.second)
+                    val longDiv = maxOf(divisor.first, divisor.second)
+                    quadrilateral.calculateSubdivision(shortDiv, longDiv)
+                } else {
+                    null
+                }
+            }
+
         outputToPng(
             layout = splitLayout,
             fileName = "${output}_split_subdivisions",
             labelsAt = subDivisionLabels(splitLayout),
             fontSize = 18f,
+            clustersOfEdges = subdivisions.map { it.shortSideEdges + it.longSideEdges },
             clustersOfPoints = setOf(
                 setOf(Point(0.0, 0.0))
             )
+        )
+
+        outputToPng(
+            layout = splitLayout.splitQuadrilaterals(subdivisions),
+            fileName = "${output}_split_subdivisions_effective",
+            fillPolygons = true,
+            mainEdgeStroke = 18f,
+            secondaryEdgeStroke = 4f,
         )
 
         val allEdgeLengths = splitLayout.polygons.flatMap { it.edges }.map { it.length }

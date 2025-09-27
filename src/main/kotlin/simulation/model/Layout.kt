@@ -19,9 +19,17 @@ data class Layout(
         }
     }
 
-    fun triangles(): List<Polygon> = polygons.filter { it.isTriangle() }
-    fun quadrilaterals(): List<Quadrilateral> =
-        polygons.filter { it.isQuadrilateral() }.map { Quadrilateral(it.points) }
+    fun triangles(): List<Polygon> {
+        return polygons
+            .filter { polygon -> polygon.isTriangle() }
+            .map { polygon -> Triangle(polygon.points) }
+    }
+
+    fun quadrilaterals(): List<Quadrilateral> {
+        return polygons
+            .filter { polygon -> polygon.isQuadrilateral() }
+            .map { polygon -> Quadrilateral(polygon.points) }
+    }
 
     fun splitQuadrilateralsAlongEdges(splitEdges: Collection<Edge>): Layout {
         val newPolygons = polygons.toMutableList()
@@ -61,4 +69,30 @@ data class Layout(
         return Layout(newPolygons, newSecondaryEdges)
     }
 
+    /**
+     * Splits multiple quadrilaterals in the layout using a list of
+     * QuadrilateralSubdivision objects, one for each targeted split.
+     */
+    fun splitQuadrilaterals(subdivisions: List<QuadrilateralSubdivision>): Layout {
+        val currentPolygons = polygons.toMutableList()
+        val newSecondaryEdges = secondaryEdges.toMutableSet()
+
+        for (subdivision in subdivisions) {
+            val quadrilateralToSplit = subdivision.quadrilateral
+
+            require(polygons.contains(quadrilateralToSplit)) {
+                "The quadrilateral to split must be part of the current layout"
+            }
+
+            // apply the generalized M x N split
+            val splitResultLayout = quadrilateralToSplit.split(subdivision)
+
+            // update the layout
+            currentPolygons -= quadrilateralToSplit
+            currentPolygons += splitResultLayout.polygons
+            newSecondaryEdges += splitResultLayout.secondaryEdges
+        }
+
+        return Layout(currentPolygons, newSecondaryEdges.toList())
+    }
 }

@@ -30,10 +30,62 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
     }
 
     fun elongationIndex(): Double {
-        val pairs = oppositeEdgesTuples()
-        val lengthAverage1 = pairs.first.avgLength()
-        val lengthAverage2 = pairs.second.avgLength()
+        val tuples = oppositeEdgesTuples()
+        val lengthAverage1 = tuples.first.avgLength()
+        val lengthAverage2 = tuples.second.avgLength()
         return maxOf(lengthAverage1, lengthAverage2) / minOf(lengthAverage1, lengthAverage2)
+    }
+
+    fun calculateSubdivision(shortDiv: Int, longDiv: Int): QuadrilateralSubdivision {
+        fun calculateSubDivisionOnOpposeEdgeTuple(edgesTuple: OppositeEdgesTuple, div: Int): List<Edge> {
+            val oppositeEdges = edgesTuple.edges.toList()
+            val edge1 = oppositeEdges[0]
+            val edge2 = oppositeEdges[1]
+
+            val points1 = edge1.pointsDividedInto(div)
+            var points2 = edge2.pointsDividedInto(div)
+
+            // if list of points are in opposite directions (however both sorted), reverse one of them
+            val firstEdge = Edge(points1.first(), points2.first())
+            val lastEdge = Edge(points1.last(), points2.last())
+            val intersects = firstEdge.intersectionPoint(lastEdge) != null
+
+            if (intersects) {
+                points2 = points2.reversed()
+            }
+
+            require(points1.size == div - 1) { "Expected ${div - 1} points for divisor $div on edge 1" }
+            require(points2.size == div - 1) { "Expected ${div - 1} points for divisor $div on edge 2" }
+
+            val newEdges = points1.zip(points2) { p1, p2 -> Edge(p1, p2) }
+
+            if (newEdges.size != (div - 1)) {
+                logger.warn {
+                    "${shortDiv}x${longDiv}, expected ${div - 1} new edges, but got ${newEdges.size} instead, " +
+                            "#points1: ${points1.size}, #points2: ${points2.size}"
+                }
+            }
+
+            return newEdges
+        }
+
+        require(shortDiv <= longDiv) { "shortDiv must be less than or equal to longDiv" }
+        require(shortDiv > 0 && longDiv > 0) { "Division factors must be positive" }
+
+        val tuples = oppositeEdgesTuples()
+        val shortEdgesTuple = tuples.toList().minBy { it.avgLength() }
+        val longEdgesTuple = tuples.toList().maxBy { it.avgLength() }
+
+        val shortSideEdges = mutableListOf<Edge>()
+        val longSideEdges = mutableListOf<Edge>()
+        if (shortDiv > 1) {
+            shortSideEdges += calculateSubDivisionOnOpposeEdgeTuple(shortEdgesTuple, shortDiv)
+        }
+        if (longDiv > 1) {
+            longSideEdges += calculateSubDivisionOnOpposeEdgeTuple(longEdgesTuple, longDiv)
+        }
+
+        return QuadrilateralSubdivision(this, shortSideEdges, longSideEdges)
     }
 
     fun split1x2(crossingEdge: Edge): List<Quadrilateral> {
@@ -103,6 +155,15 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
 
             return Layout(newPolygons, subEdges1 + subEdges2)
         }
+    }
+
+    /**
+     * Splits the quadrilateral into an M x N grid based on the non-crossing parallel
+     * edges provided in the QuadrilateralSubdivision.
+     */
+    fun split(subdivision: QuadrilateralSubdivision): Layout {
+        // TODO: implement
+        return Layout(listOf(subdivision.quadrilateral), listOf())
     }
 
 }
