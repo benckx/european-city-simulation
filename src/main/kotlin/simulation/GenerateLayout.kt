@@ -4,11 +4,12 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
-import simulation.model.Polygon
+import simulation.model.Quadrilateral
 import simulation.services.LadderDetection.Companion.detectLadders
 import simulation.services.createBaseTriangulation
 import simulation.services.mergeTrianglesToQuadrilaterals
 import simulation.services.outputToPng
+import kotlin.math.ceil
 import kotlin.math.floor
 
 private val logger = KotlinLogging.logger {}
@@ -31,8 +32,8 @@ private fun infoLabels(layout: Layout): Map<Point, String> {
         val lengths = q.edges.map { it.length }
 
         val lines = listOf(
-            "elong: %.2f".format(q.quadrilateralElongationIndex()),
-            "irreg: %.2f".format(q.quadrilateralIrregularityIndex()),
+            "elong: %.2f".format(q.elongationIndex()),
+            "irreg: %.2f".format(q.irregularityIndex()),
 //            "area: %.2f".format(q.area() / 1_000),
             "${(lengths.min()).toInt()} - ${lengths.max().toInt()}"
         )
@@ -42,24 +43,29 @@ private fun infoLabels(layout: Layout): Map<Point, String> {
 }
 
 private fun subDivisionLabels(layout: Layout): Map<Point, String> {
-    return layout.quadrilaterals().mapNotNull { quadrilateral ->
-        quadrilateralSubdivision(quadrilateral)?.let { (shortDiv, longDiv) ->
-            quadrilateral.findCentroid() to "${shortDiv}x${longDiv}"
+    return layout
+        .quadrilaterals()
+        .mapNotNull { quadrilateral ->
+            quadrilateralSubdivision(quadrilateral)?.let { (shortDiv, longDiv) ->
+                quadrilateral.findCentroid() to "${shortDiv}x${longDiv}"
+            }
         }
-    }.toMap()
+        .toMap()
 }
 
-private fun quadrilateralSubdivision(q: Polygon): Pair<Int, Int>? {
-    if (q.isQuadrilateral() && q.quadrilateralIrregularityIndex() < 1) {
-        val maxEdgeLength = 100
+private fun quadrilateralSubdivision(q: Quadrilateral): Pair<Int, Int>? {
+    if (q.irregularityIndex() < 1) {
+        val maxEdgeLength = 110
         val pairs = q.oppositeEdgesTuples().toList()
         val shortEdges = pairs.minBy { it.avgLength() }
         val longEdges = pairs.maxBy { it.avgLength() }
-        val shortDiv = floor(shortEdges.minLength() / maxEdgeLength).toInt()
-        val longDiv = floor(longEdges.minLength() / maxEdgeLength).toInt()
+        val shortLength = shortEdges.minLength()
+        val longLength = longEdges.minLength()
+        val shortDiv = ceil(shortLength / maxEdgeLength).toInt()
+        val longDiv = ceil(longLength / maxEdgeLength).toInt()
         logger.debug {
-            val shortEdge = String.format("%.1f", shortEdges.minLength())
-            val longEdge = String.format("%.1f", longEdges.minLength())
+            val shortEdge = String.format("%.1f", shortLength)
+            val longEdge = String.format("%.1f", longLength)
             "[subdivision] ${shortEdge}x${longEdge}, ${shortDiv}x${longDiv}"
         }
         if (shortDiv >= 1 && longDiv >= 1) {

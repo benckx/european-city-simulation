@@ -40,5 +40,5 @@ fun mergeTrianglesToQuadrilaterals(triangles: List<Triangle>, sizeIndex: Int = 2
     }
 
     val trianglesToKeep = triangles.filterNot { mergedTriangles.contains(it) }
-    return trianglesToKeep.map { triangle -> triangle.asPolygon() } + quadrilaterals
+    return trianglesToKeep + quadrilaterals
 }

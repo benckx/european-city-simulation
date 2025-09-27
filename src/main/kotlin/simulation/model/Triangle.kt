@@ -4,17 +4,16 @@ import kotlin.math.acos
 import kotlin.math.hypot
 import kotlin.math.pow
 
-data class Triangle(val a: Point, val b: Point, val c: Point) {
+class Triangle(points: Set<Point>) : Polygon(points) {
 
-    val edges: Set<Edge>
-        get() = setOf(Edge(a, b), Edge(b, c), Edge(c, a))
-
-    val points: Set<Point>
-        get() = setOf(a, b, c)
-
-    fun asPolygon(): Polygon = Polygon(points)
+    constructor(a: Point, b: Point, c: Point) : this(setOf(a, b, c))
 
     fun angles(): List<Double> {
+        val trianglePoints = points.toList()
+        val a = trianglePoints[0]
+        val b = trianglePoints[1]
+        val c = trianglePoints[2]
+
         val ab = hypot(b.x - a.x, b.y - a.y)
         val bc = hypot(c.x - b.x, c.y - b.y)
         val ca = hypot(a.x - c.x, a.y - c.y)
@@ -26,7 +25,12 @@ data class Triangle(val a: Point, val b: Point, val c: Point) {
         return listOf(angleA, angleB, angleC)
     }
 
-    fun isPointInCircumcircle(p: Point): Boolean {
+    fun isPointInCircumcircle(point: Point): Boolean {
+        val trianglePoints = points.toList()
+        val a = trianglePoints[0]
+        val b = trianglePoints[1]
+        val c = trianglePoints[2]
+
         val d = (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) * 2
         val ax2 = a.x.pow(2)
         val ay2 = a.y.pow(2)
@@ -38,17 +42,8 @@ data class Triangle(val a: Point, val b: Point, val c: Point) {
         val centerX = ((ax2 + ay2) * (b.y - c.y) + (bx2 + by2) * (c.y - a.y) + (cx2 + cy2) * (a.y - b.y)) / d
         val centerY = ((ax2 + ay2) * (c.x - b.x) + (bx2 + by2) * (a.x - c.x) + (cx2 + cy2) * (b.x - a.x)) / d
         val radius = hypot(a.x - centerX, a.y - centerY)
-        val dist = hypot(p.x - centerX, p.y - centerY)
+        val dist = hypot(point.x - centerX, point.y - centerY)
         return dist <= radius
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Triangle
-        return points == other.points
-    }
-
-    override fun hashCode(): Int = points.hashCode()
 }

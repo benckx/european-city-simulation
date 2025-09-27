@@ -55,11 +55,10 @@ fun delaunayTriangulation(points: List<Point>): List<Triangle> {
         }
     }
 
+
     // final cleanup: remove any triangles that contain a vertex from the super-triangle
-    return triangles.filterNot { t ->
-        t.a == p1 || t.a == p2 || t.a == p3 ||
-                t.b == p1 || t.b == p2 || t.b == p3 ||
-                t.c == p1 || t.c == p2 || t.c == p3
+    return triangles.filterNot { triangle ->
+        triangle.points.intersect(setOf(p1, p2, p3)).isNotEmpty()
     }
 }
 

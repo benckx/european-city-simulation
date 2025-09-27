@@ -32,13 +32,13 @@ class LadderDetection(layout: Layout) {
     }
 
     private fun orderLadderEdges(ladderEdges: Set<Edge>): Ladder {
-        fun areLadderNeighbors(p1: Polygon, p2: Polygon): Boolean =
-            p1 != p2 && p1.edges.intersect(p2.edges.toSet()).intersect(ladderEdges).isNotEmpty()
+        fun areLadderNeighbors(q1: Quadrilateral, q2: Quadrilateral): Boolean =
+            q1 != q2 && q1.edges.intersect(q2.edges.toSet()).intersect(ladderEdges).isNotEmpty()
 
-        fun ladderNeighborsOf(polygon: Polygon): List<Polygon> =
-            allQuadrilaterals.filter { otherPolygon -> areLadderNeighbors(polygon, otherPolygon) }
+        fun ladderNeighborsOf(q: Quadrilateral): List<Quadrilateral> =
+            allQuadrilaterals.filter { other -> areLadderNeighbors(q, other) }
 
-        fun ladderEdgesPresentInOnlyOnePolygon(): List<Edge> =
+        fun ladderEdgesPresentInOnlyOneQuadrilateral(): List<Edge> =
             ladderEdges.filter { edge -> allQuadrilaterals.flatMap { it.edges }.count { it == edge } == 1 }
 
         val ladderQuadrilaterals = allQuadrilaterals.filter { q -> ladderEdges.any { edge -> q.edges.contains(edge) } }
@@ -47,12 +47,12 @@ class LadderDetection(layout: Layout) {
 
         require(terminalQuadrilaterals.isNotEmpty()) { "There should be at least 1 terminal quadrilaterals in a ladder polygons but there are ${terminalQuadrilaterals.size}" }
 
-        logger.debug { "#edgesUsedByOnlyOnePolygon: ${ladderEdgesPresentInOnlyOnePolygon().size}" }
+        logger.debug { "#ladderEdgesPresentInOnlyOneQuadrilateral(): ${ladderEdgesPresentInOnlyOneQuadrilateral().size}" }
         logger.debug { "#terminalQuadrilaterals: ${terminalQuadrilaterals.size}" }
 
         var currentEdge =
-            ladderEdgesPresentInOnlyOnePolygon().find { terminalQuadrilaterals.flatMap { q -> q.edges }.contains(it) }!!
-        var currentPolygon: Polygon? = terminalQuadrilaterals.first { it.edges.contains(currentEdge) }
+            ladderEdgesPresentInOnlyOneQuadrilateral().find { terminalQuadrilaterals.flatMap { q -> q.edges }.contains(it) }!!
+        var currentPolygon: Quadrilateral? = terminalQuadrilaterals.first { it.edges.contains(currentEdge) }
         val orderedEdges = mutableListOf<Edge>()
         val visitedPolygons = mutableSetOf<Polygon>()
         orderedEdges += currentEdge
@@ -70,10 +70,8 @@ class LadderDetection(layout: Layout) {
         return Ladder(orderedEdges)
     }
 
-    private fun listAllPairsOfNeighbors(allQuadrilaterals: List<Polygon>): Set<Set<Polygon>> {
-        require(allQuadrilaterals.all { it.isQuadrilateral() })
-
-        val pairOfNeighbors = mutableSetOf<Set<Polygon>>()
+    private fun listAllPairsOfNeighbors(allQuadrilaterals: List<Quadrilateral>): Set<Set<Quadrilateral>> {
+        val pairOfNeighbors = mutableSetOf<Set<Quadrilateral>>()
         allQuadrilaterals.forEach { quadrilateral ->
             val otherQuadrilaterals = allQuadrilaterals.filter { it != quadrilateral }
             val edges = quadrilateral.edges
@@ -91,9 +89,7 @@ class LadderDetection(layout: Layout) {
         return pairOfNeighbors
     }
 
-    private fun detectLadderFromPairOfNeighbours(
-        pairOfNeighbors: Set<Polygon>
-    ): Set<Edge> {
+    private fun detectLadderFromPairOfNeighbours(pairOfNeighbors: Set<Quadrilateral>): Set<Edge> {
         val p1 = pairOfNeighbors.first()
         val p2 = pairOfNeighbors.last()
         val sharedEdge = p1.edges.intersect(p2.edges.toSet()).firstOrNull()
