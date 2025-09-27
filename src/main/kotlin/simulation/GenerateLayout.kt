@@ -142,7 +142,29 @@ fun main() {
 
         outputToPng(
             layout = splitLayout,
-            fileName = "${output}_split_subdivisions",
+            fileName = "${output}_split_short_subdivisions",
+            labelsAt = subDivisionLabels(splitLayout),
+            fontSize = 18f,
+            clustersOfEdges = subdivisions.map { it.shortSideEdges },
+            clustersOfPoints = setOf(
+                setOf(Point(0.0, 0.0))
+            )
+        )
+
+        outputToPng(
+            layout = splitLayout,
+            fileName = "${output}_split_long_subdivisions",
+            labelsAt = subDivisionLabels(splitLayout),
+            fontSize = 18f,
+            clustersOfEdges = subdivisions.map { it.longSideEdges },
+            clustersOfPoints = setOf(
+                setOf(Point(0.0, 0.0))
+            )
+        )
+
+        outputToPng(
+            layout = splitLayout,
+            fileName = "${output}_split_all_subdivisions",
             labelsAt = subDivisionLabels(splitLayout),
             fontSize = 18f,
             clustersOfEdges = subdivisions.map { it.shortSideEdges + it.longSideEdges },
