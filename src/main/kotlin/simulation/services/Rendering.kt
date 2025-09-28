@@ -4,6 +4,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import simulation.model.Edge
 import simulation.model.Layout
 import simulation.model.Point
+import simulation.services.Palette.Companion.earthyTones
+import simulation.services.Palette.Companion.pastelRainbow
 import java.awt.BasicStroke
 import java.awt.BasicStroke.CAP_ROUND
 import java.awt.BasicStroke.JOIN_ROUND
@@ -16,33 +18,6 @@ import java.io.File
 import javax.imageio.ImageIO
 
 private val logger = KotlinLogging.logger {}
-
-// similar to "pastel rainbow"
-private val palette1 =
-    listOf(
-        "70D6FF",
-        "FF70A6",
-        "FF9770",
-        "FFF670",
-        "70FFEA",
-        "D6FF70",
-        "E9FF70"
-    ).map { Color.decode("#$it") }
-
-// earthy tones
-private val palette2 =
-    listOf(
-        "797D62",
-        "9B9B7A",
-        "BAA587",
-        "D9AE94",
-        "F1DCA7",
-        "FFCB69",
-        "E8AC65",
-        "D08C60",
-        "B58463",
-        "997B66"
-    ).map { Color.decode("#$it") }
 
 private const val LABEL_PADDING_WIDTH = 4
 private const val LABEL_PADDING_HEIGHT = 2
@@ -60,6 +35,8 @@ fun outputToPng(
     secondaryEdgeStroke: Float = 6f,
     clusterEdgeStroke: Float = 6f,
     pointThickness: Int = 24,
+    clusterPalette: Palette = pastelRainbow,
+    polygonFillingPalette: Palette = earthyTones,
     labelsAt: Map<Point, String> = emptyMap(),
     fontSize: Float = 40f,
     subDirectory: String? = null,
@@ -98,7 +75,7 @@ fun outputToPng(
     // fill polygons
     if (fillPolygons) {
         layout.polygons.forEachIndexed { index, polygon ->
-            graphics.color = palette2[index % palette2.size]
+            graphics.color = polygonFillingPalette.colorByIndex(index)
             val orderedPoints = polygon.orderedPoints().map { point -> point.shift(offset) }
             val xPoints = orderedPoints.map { it.x.toInt() }.toIntArray()
             val yPoints = orderedPoints.map { it.y.toInt() }.toIntArray()
@@ -110,7 +87,7 @@ fun outputToPng(
     if (clusterDifferentiationByColor) {
         // draw points
         clustersOfPoints.forEachIndexed { index, points ->
-            val color = palette1[index % palette1.size]
+            val color = clusterPalette.colorByIndex(index)
             graphics.color = color
             points
                 .map { point -> point.shift(offset) }
@@ -120,7 +97,7 @@ fun outputToPng(
         // draw edges
         graphics.stroke = BasicStroke(clusterEdgeStroke)
         clustersOfEdges.forEachIndexed { index, edges ->
-            val color = palette1[index % palette1.size]
+            val color = clusterPalette.colorByIndex(index)
             graphics.color = color
             edges
                 .map { edge -> edge.shift(offset) }
@@ -146,20 +123,24 @@ fun outputToPng(
     }
 
     // draw secondary edges
-    graphics.color = secondaryEdgeColor
-    graphics.stroke = BasicStroke(secondaryEdgeStroke)
-    layout.secondaryEdges
-        .map { edge -> edge.shift(offset) }
-        .forEach { edge -> graphics.drawEdge(edge) }
+    if (secondaryEdgeStroke > 0f) {
+        graphics.color = secondaryEdgeColor
+        graphics.stroke = BasicStroke(secondaryEdgeStroke)
+        layout.secondaryEdges
+            .map { edge -> edge.shift(offset) }
+            .forEach { edge -> graphics.drawEdge(edge) }
+    }
 
     // draw main polygon edges
-    val excludedFromMainPolygonEdges = (clustersOfEdges.flatten().distinct() + layout.secondaryEdges).toSet()
-    graphics.color = mainEdgeColor
-    graphics.stroke = BasicStroke(mainEdgeStroke, CAP_ROUND, JOIN_ROUND)
-    layout.polygons.flatMap { it.edges }.distinct()
-        .filterNot { mainEdge -> excludedFromMainPolygonEdges.contains(mainEdge) }
-        .map { edge -> edge.shift(offsetX, offsetY) }
-        .forEach { edge -> graphics.drawEdge(edge) }
+    if (mainEdgeStroke > 0f) {
+        val excludedFromMainPolygonEdges = (clustersOfEdges.flatten().distinct() + layout.secondaryEdges).toSet()
+        graphics.color = mainEdgeColor
+        graphics.stroke = BasicStroke(mainEdgeStroke, CAP_ROUND, JOIN_ROUND)
+        layout.polygons.flatMap { it.edges }.distinct()
+            .filterNot { mainEdge -> excludedFromMainPolygonEdges.contains(mainEdge) }
+            .map { edge -> edge.shift(offsetX, offsetY) }
+            .forEach { edge -> graphics.drawEdge(edge) }
+    }
 
     // draw text
     graphics.font = graphics.font.deriveFont(fontSize)

@@ -4,12 +4,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
-import simulation.model.Quadrilateral
 import simulation.services.LadderDetection.Companion.detectLadders
+import simulation.services.Palette.Companion.blueSerenity
 import simulation.services.createBaseTriangulation
 import simulation.services.mergeTrianglesToQuadrilaterals
 import simulation.services.outputToPng
-import kotlin.math.ceil
 
 private val logger = KotlinLogging.logger {}
 
@@ -33,7 +32,6 @@ private fun infoLabels(layout: Layout): Map<Point, String> {
         val lines = listOf(
             "elong: %.2f".format(q.elongationIndex()),
             "irreg: %.2f".format(q.irregularityIndex()),
-//            "area: %.2f".format(q.area() / 1_000),
             "${(lengths.min()).toInt()} - ${lengths.max().toInt()}"
         )
 
@@ -41,42 +39,8 @@ private fun infoLabels(layout: Layout): Map<Point, String> {
     }
 }
 
-private fun subDivisionLabels(layout: Layout): Map<Point, String> {
-    return layout
-        .quadrilaterals()
-        .mapNotNull { quadrilateral ->
-            quadrilateralSubdivision(quadrilateral)?.let { (shortDiv, longDiv) ->
-                quadrilateral.findCentroid() to "${shortDiv}x${longDiv}"
-            }
-        }
-        .toMap()
-}
-
-private fun quadrilateralSubdivision(q: Quadrilateral): Pair<Int, Int>? {
-    if (q.irregularityIndex() <= .6) {
-        val maxEdgeLength = 110
-        val pairs = q.oppositeEdgesTuples().toList()
-        val shortEdges = pairs.minBy { it.avgLength() }
-        val longEdges = pairs.maxBy { it.avgLength() }
-        val shortLength = shortEdges.minLength()
-        val longLength = longEdges.minLength()
-        val shortDiv = ceil(shortLength / maxEdgeLength).toInt()
-        val longDiv = ceil(longLength / maxEdgeLength).toInt()
-        logger.debug {
-            val shortEdge = String.format("%.1f", shortLength)
-            val longEdge = String.format("%.1f", longLength)
-            "[subdivision] ${shortEdge}x${longEdge}, ${shortDiv}x${longDiv}"
-        }
-        if (shortDiv >= 1 && longDiv >= 1) {
-            return shortDiv to longDiv
-        }
-    }
-
-    return null
-}
-
-private fun logLayout(layout: Layout): String {
-    return "[layout] #polygons: ${layout.polygons.size}, " +
+private fun logLayout(layout: Layout, name: String = "layout"): String {
+    return "[$name] #polygons: ${layout.polygons.size}, " +
             "#triangles: ${layout.triangles().size}, " +
             "#quadrilaterals: ${layout.quadrilaterals().size}"
 }
@@ -85,107 +49,74 @@ fun main() {
     logger.info { "generating layout" }
     (1..NUMBER_OF_LAYOUT).forEach { i ->
         val output = "layout_${String.format("%04d", i)}"
-        val ratio = .33
+        val crossLineRatio = .33
         val triangles = createBaseTriangulation(numberOfPoints = 30, requiredMinAngle = 20)
         val polygons = mergeTrianglesToQuadrilaterals(triangles)
-        val layout = Layout(polygons)
-        logger.info { logLayout(layout) }
+        val layout1 = Layout(polygons)
 
-        val ladders = detectLadders(layout)
-        val crossLines = ladders.map { it.crossingLine(ratio = ratio) }
-        val crossLinesEdges = crossLines.flatMap { it.edges }
-        logger.info { "#ladders: ${ladders.size}, #crosslines: ${crossLines.size}, #crossLinesEdges: ${crossLinesEdges.size}" }
+        val ladders = detectLadders(layout1)
+        val ladderCrossLines = ladders.map { it.crossingLine(ratio = crossLineRatio) }
+        val ladderCrossLinesEdges = ladderCrossLines.flatMap { it.edges }
+        logger.info {
+            "#ladders: ${ladders.size}, " +
+                    "#ladderCrossLines: ${ladderCrossLines.size}, " +
+                    "#ladderCrossLinesEdges: ${ladderCrossLinesEdges.size}"
+        }
 
         // render ladder structures
         outputToPng(
-            layout = layout,
+            layout = layout1,
             clustersOfEdges = ladders.map { it.edges },
             labelsAt = ladderLabels(ladders),
-            fileName = "${output}_ladders",
+            fileName = "${output}_phase1_ladders",
             clusterEdgeStroke = 12f,
         )
 
-        // render splitting edges blueprint info
+        // render ladder cross lines
         outputToPng(
-            layout = layout,
-            clustersOfEdges = crossLines.map { it.edges },
-            fileName = "${output}_split_blueprint"
+            layout = layout1,
+            clustersOfEdges = ladderCrossLines.map { it.edges },
+            fileName = "${output}_phase1_ladders_crosslines",
         )
 
-        // actually split
-        val splitLayout = layout.splitQuadrilateralsAlongEdges(crossLinesEdges)
-        logger.info { logLayout(splitLayout) }
+        // actually split along ladder cross lines
+        val layout2 = layout1.splitQuadrilateralsAlongEdges(ladderCrossLinesEdges)
 
+        // calculate and apply further subdivisions
         outputToPng(
-            layout = splitLayout,
-            fileName = "${output}_split_metrics",
-            labelsAt = infoLabels(splitLayout),
-            fontSize = 14f,
-            clustersOfPoints = setOf(
-                setOf(Point(0.0, 0.0)),
-                splitLayout.quadrilaterals().map { it.findCentroid() }
-            )
+            layout = layout2,
+            fileName = "${output}_phase2_metrics",
+            labelsAt = infoLabels(layout2),
+            fontSize = 14f
         )
 
-        val subdivisions = splitLayout
-            .quadrilaterals()
-            .mapNotNull { quadrilateral ->
-                val divisor = quadrilateralSubdivision(quadrilateral)
-                if (divisor != null) {
-                    val shortDiv = minOf(divisor.first, divisor.second)
-                    val longDiv = maxOf(divisor.first, divisor.second)
-                    quadrilateral.calculateSubdivision(shortDiv, longDiv)
-                } else {
-                    null
-                }
-            }
+        val subdivisions = layout2.calculateQuadrilateralSubdivisions()
+        val layout3 = layout2.splitQuadrilaterals(subdivisions)
 
         outputToPng(
-            layout = splitLayout,
-            fileName = "${output}_split_short_subdivisions",
-            labelsAt = subDivisionLabels(splitLayout),
-            fontSize = 18f,
-            clustersOfEdges = subdivisions.map { it.shortSideEdges },
-            clustersOfPoints = setOf(
-                setOf(Point(0.0, 0.0))
-            )
+            layout = layout2,
+            fileName = "${output}_phase2_subdivisions",
+            clustersOfEdges = subdivisions.map { it.shortSideEdges + it.longSideEdges }
         )
 
         outputToPng(
-            layout = splitLayout,
-            fileName = "${output}_split_long_subdivisions",
-            labelsAt = subDivisionLabels(splitLayout),
-            fontSize = 18f,
-            clustersOfEdges = subdivisions.map { it.longSideEdges },
-            clustersOfPoints = setOf(
-                setOf(Point(0.0, 0.0))
-            )
-        )
-
-        outputToPng(
-            layout = splitLayout,
-            fileName = "${output}_split_all_subdivisions",
-            labelsAt = subDivisionLabels(splitLayout),
-            fontSize = 18f,
-            clustersOfEdges = subdivisions.map { it.shortSideEdges + it.longSideEdges },
-            clustersOfPoints = setOf(
-                setOf(Point(0.0, 0.0))
-            )
-        )
-
-        outputToPng(
-            layout = splitLayout.splitQuadrilaterals(subdivisions),
-            fileName = "${output}_split_subdivisions_effective",
-            fillPolygons = true,
+            layout = layout3,
+            fileName = "${output}_phase2_subdivisions_applied",
             mainEdgeStroke = 18f,
             secondaryEdgeStroke = 4f,
         )
 
-        val allEdgeLengths = splitLayout.polygons.flatMap { it.edges }.map { it.length }
-        logger.info {
-            "[length] min: ${"%.2f".format(allEdgeLengths.min())}, " +
-                    "max: ${"%.2f".format(allEdgeLengths.max())}, " +
-                    "avg: ${"%.2f".format(allEdgeLengths.average())}"
-        }
+        outputToPng(
+            layout = layout3,
+            fileName = "${output}_phase2_subdivisions_applied_filled",
+            fillPolygons = true,
+            polygonFillingPalette = blueSerenity,
+            mainEdgeStroke = 18f,
+            secondaryEdgeStroke = 4f,
+        )
+
+        logger.info { logLayout(layout1) }
+        logger.info { logLayout(layout2) }
+        logger.info { logLayout(layout3) }
     }
 }

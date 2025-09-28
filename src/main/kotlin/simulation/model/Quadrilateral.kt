@@ -1,6 +1,7 @@
 package simulation.model
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.math.ceil
 
 private val logger = KotlinLogging.logger {}
 
@@ -35,6 +36,30 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
         val lengthAverage2 = tuples.second.avgLength()
         return maxOf(lengthAverage1, lengthAverage2) / minOf(lengthAverage1, lengthAverage2)
     }
+
+    fun calculateSubdivisionFactor(): Pair<Int, Int>? {
+        if (irregularityIndex() <= .6) {
+            val maxEdgeLength = 110
+            val pairs = oppositeEdgesTuples().toList()
+            val shortEdges = pairs.minBy { it.avgLength() }
+            val longEdges = pairs.maxBy { it.avgLength() }
+            val shortLength = shortEdges.minLength()
+            val longLength = longEdges.minLength() // FIXME: should this be maxLength() for longEdges?
+            val shortDiv = ceil(shortLength / maxEdgeLength).toInt()
+            val longDiv = ceil(longLength / maxEdgeLength).toInt()
+            logger.debug {
+                val shortEdge = String.format("%.1f", shortLength)
+                val longEdge = String.format("%.1f", longLength)
+                "[subdivision] ${shortEdge}x${longEdge}, ${shortDiv}x${longDiv}"
+            }
+            if (shortDiv >= 1 && longDiv >= 1) {
+                return shortDiv to longDiv
+            }
+        }
+
+        return null
+    }
+
 
     fun calculateSubdivision(shortDiv: Int, longDiv: Int): QuadrilateralSubdivision {
         fun calculateSubDivisionOnOpposeEdgeTuple(edgesTuple: OppositeEdgesTuple, div: Int): List<Edge> {
@@ -88,6 +113,7 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
         return QuadrilateralSubdivision(this, shortSideEdges, longSideEdges)
     }
 
+    // TODO: can be replaced by the more generic M x N split feature?
     fun split1x2(crossingEdge: Edge): List<Quadrilateral> {
         val polygonEdges = edges
         val edgesToSplit =
@@ -104,6 +130,7 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
         }
     }
 
+    // TODO: can be replaced by the more generic M x N split feature?
     fun split2x2AtIntersection(crossingEdge1: Edge, crossingEdge2: Edge): Layout {
         val intersectionPoint = crossingEdge1.intersectionPoint(crossingEdge2)
         if (intersectionPoint == null) {
@@ -155,15 +182,6 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
 
             return Layout(newPolygons, subEdges1 + subEdges2)
         }
-    }
-
-    /**
-     * Splits the quadrilateral into an M x N grid based on the non-crossing parallel
-     * edges provided in the QuadrilateralSubdivision.
-     */
-    fun split(subdivision: QuadrilateralSubdivision): Layout {
-        // TODO: implement
-        return Layout(listOf(subdivision.quadrilateral), listOf())
     }
 
 }

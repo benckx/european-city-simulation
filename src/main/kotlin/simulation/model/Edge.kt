@@ -39,6 +39,9 @@ data class Edge(val p1: Point, val p2: Point) {
         return setOf(Point(x1, y1), Point(x2, y2))
     }
 
+    /**
+     * Sorted from p1 to p2
+     */
     fun pointsDividedInto(parts: Int): List<Point> {
         require(parts > 1) { "Parts must be greater than 1" }
         val divisionFactor = 1.0 / parts
@@ -98,6 +101,15 @@ data class Edge(val p1: Point, val p2: Point) {
         }
     }
 
+    fun isSubEdgeOf(largerEdge: Edge, tolerance: Double = 1e-9): Boolean {
+        if (length > largerEdge.length - tolerance) {
+            return false
+        }
+
+        return largerEdge.containsPoint(p1, tolerance) &&
+                largerEdge.containsPoint(p2, tolerance)
+    }
+
     fun containsPoint(point: Point, tolerance: Double = 1e-9): Boolean {
         val start = p1
         val end = p2
@@ -136,6 +148,6 @@ data class Edge(val p1: Point, val p2: Point) {
         return other.points == points
     }
 
-    override fun hashCode(): Int = p1.hashCode() + p2.hashCode()
+    override fun hashCode(): Int = points.hashCode()
 
 }

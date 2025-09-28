@@ -31,6 +31,20 @@ data class Layout(
             .map { polygon -> Quadrilateral(polygon.points) }
     }
 
+    fun calculateQuadrilateralSubdivisions(): List<QuadrilateralSubdivision> {
+        return quadrilaterals()
+            .mapNotNull { quadrilateral ->
+                val factor = quadrilateral.calculateSubdivisionFactor()
+                if (factor != null) {
+                    val shortDiv = minOf(factor.first, factor.second)
+                    val longDiv = maxOf(factor.first, factor.second)
+                    quadrilateral.calculateSubdivision(shortDiv, longDiv)
+                } else {
+                    null
+                }
+            }
+    }
+
     fun splitQuadrilateralsAlongEdges(splitEdges: Collection<Edge>): Layout {
         val newPolygons = polygons.toMutableList()
         val newSecondaryEdges = secondaryEdges.toMutableList()
@@ -76,23 +90,56 @@ data class Layout(
     fun splitQuadrilaterals(subdivisions: List<QuadrilateralSubdivision>): Layout {
         val currentPolygons = polygons.toMutableList()
         val newSecondaryEdges = secondaryEdges.toMutableSet()
+        val allSubQuadrilaterals = mutableSetOf<Quadrilateral>()
 
         for (subdivision in subdivisions) {
-            val quadrilateralToSplit = subdivision.quadrilateral
-
-            require(polygons.contains(quadrilateralToSplit)) {
+            require(polygons.contains(subdivision.quadrilateral)) {
                 "The quadrilateral to split must be part of the current layout"
             }
 
             // apply the generalized M x N split
-            val splitResultLayout = quadrilateralToSplit.split(subdivision)
+            val subQuadrilaterals = subdivision.subQuadrilaterals()
 
             // update the layout
-            currentPolygons -= quadrilateralToSplit
-            currentPolygons += splitResultLayout.polygons
-            newSecondaryEdges += splitResultLayout.secondaryEdges
+            currentPolygons -= subdivision.quadrilateral
+            currentPolygons += subQuadrilaterals
+
+            // collect all sub-quadrilaterals for later processing
+            // (so we don't have to run subQuadrilaterals twice for the same polygon)
+            allSubQuadrilaterals += subQuadrilaterals
+
+            // add internal subdivision edges as secondary edges
+            // these are edges from the subdivided quadrilaterals that are not part of the original boundary
+            val originalQuadrilateralEdges = subdivision.quadrilateral.edges.toSet()
+            val subQuadrilateralsEdges = subQuadrilaterals.flatMap { it.edges }.toSet()
+            val internalEdges = subQuadrilateralsEdges.filterNot { subEdge ->
+                originalQuadrilateralEdges.any { originalEdge -> subEdge.isSubEdgeOf(originalEdge) }
+            }
+            newSecondaryEdges += internalEdges
+            newSecondaryEdges -= originalQuadrilateralEdges
         }
 
-        return Layout(currentPolygons, newSecondaryEdges.toList())
+        // add the sub-edges that are sub-edges of original secondary edges
+        val originalSecondaryEdges = secondaryEdges.toSet()
+        val allSubQuadrilateralsEdges = allSubQuadrilaterals.flatMap { it.edges }
+
+        val originalSecondaryEdgesToReAdd = mutableSetOf<Edge>()
+        originalSecondaryEdgesToReAdd += allSubQuadrilateralsEdges.filter { subEdge ->
+            originalSecondaryEdges.any { originalSecondaryEdge ->
+                originalSecondaryEdge == subEdge ||
+                        subEdge.isSubEdgeOf(originalSecondaryEdge)
+            }
+        }
+
+        // secondary edges that were split but belong to another polygon that was not impacted by the subdivisions
+        // (so we'll have those edges and their sub-edges in the final layout)
+        val unImpactedPolygonsEdges = polygons
+            .filter { polygon -> subdivisions.none { subdivision -> subdivision.quadrilateral == polygon } }
+            .flatMap { it.edges }
+
+        originalSecondaryEdgesToReAdd += originalSecondaryEdges.filter { edge -> unImpactedPolygonsEdges.contains(edge) }
+
+        // result
+        return Layout(currentPolygons, (newSecondaryEdges + originalSecondaryEdgesToReAdd).toList())
     }
 }
