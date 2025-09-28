@@ -87,7 +87,7 @@ fun main() {
             layout = layout2,
             fileName = "${output}_phase2_metrics",
             labelsAt = infoLabels(layout2),
-            fontSize = 14f
+            labelFontSize = 14f
         )
 
         val subdivisions = layout2.calculateQuadrilateralSubdivisions()

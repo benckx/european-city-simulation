@@ -38,7 +38,7 @@ fun outputToPng(
     clusterPalette: Palette = pastelRainbow,
     polygonFillingPalette: Palette = earthyTones,
     labelsAt: Map<Point, String> = emptyMap(),
-    fontSize: Float = 40f,
+    labelFontSize: Float = 40f,
     subDirectory: String? = null,
     fileName: String = "layout"
 ) {
@@ -143,7 +143,7 @@ fun outputToPng(
     }
 
     // draw text
-    graphics.font = graphics.font.deriveFont(fontSize)
+    graphics.font = graphics.font.deriveFont(labelFontSize)
     labelsAt.forEach { (point, label) -> graphics.drawLabel(point, label, offset) }
 
     graphics.dispose()
