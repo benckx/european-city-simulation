@@ -1,7 +1,9 @@
 package simulation.model
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlin.math.ceil
+import kotlin.math.exp
+import kotlin.math.min
+import kotlin.math.round
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,37 +40,37 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
     }
 
     fun calculateSubdivisionFactor(): Pair<Int, Int>? {
-        val angleToMaxEdge = listOf(
-            20 to 70.0,
-            30 to 80.0,
-            60 to 100.0,
-            70 to 110.0,
-            80 to 130.0,
-            90 to 140.0,
-            100 to 150.0,
-            120 to 180.0,
-            140 to 200.0
-        )
-
+        // calculate angle delta
         val angles = interiorAngles()
         val minAngle = angles.min()
         val maxAngle = angles.max()
         val angleDelta = maxAngle - minAngle
+        val clampedDelta = min(angleDelta, MAX_ANGLE_DELTA)
 
-        val max = angleToMaxEdge.maxOf { it.second }
-        val referenceEdgeLength = angleToMaxEdge.find { (angle, _) -> angleDelta <= angle }?.second ?: max
-        val pairs = oppositeEdgesTuples().toList()
+        // calculate target subEdge length using exponential decay
+        // the expression (MAX_LENGTH - MIN_LENGTH) is the amplitude of the decay (80.0)
+        val lengthFactor = exp(-DECAY_CONSTANT * clampedDelta)
+
+        val targetSubEdgeLength = MIN_LENGTH + (MAX_LENGTH - MIN_LENGTH) * lengthFactor
+
+        // 4. Calculate Subdivision Factors (same as before)
+        val pairs = oppositeEdgesTuples().toList() // Needs to be defined on Polygon
         val shortEdges = pairs.minBy { it.avgLength() }
         val longEdges = pairs.maxBy { it.avgLength() }
         val shortLength = shortEdges.minLength()
-        val longLength = longEdges.minLength() // FIXME: should this be maxLength() for longEdges?
-        val shortDiv = ceil(shortLength / referenceEdgeLength).toInt()
-        val longDiv = ceil(longLength / referenceEdgeLength).toInt()
+        val longLength = longEdges.minLength()
+
+        // use the ceiling division to determine the number of sub-blocks
+        val shortDiv = round(shortLength / targetSubEdgeLength).toInt()
+        val longDiv = round(longLength / targetSubEdgeLength).toInt()
+
         logger.debug {
             val shortEdge = String.format("%.1f", shortLength)
             val longEdge = String.format("%.1f", longLength)
-            "[subdivision] Δ${angleDelta.toInt()}°, maxEdgeLength=${referenceEdgeLength} -> ${shortDiv}x${longDiv} (${shortEdge}x${longEdge})"
+            val targetL = String.format("%.1f", targetSubEdgeLength)
+            "[subdivision] Δ${angleDelta.toInt()}° (clamped to ${clampedDelta.toInt()}°), maxEdgeLength=${targetL} -> ${shortDiv}x${longDiv} (${shortEdge}x${longEdge})"
         }
+
         return if (shortDiv >= 1 && longDiv >= 1) {
             shortDiv to longDiv
         } else {
@@ -207,6 +209,15 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
 
             return Layout(newPolygons, subEdges1 + subEdges2)
         }
+    }
+
+    private companion object {
+
+        const val MAX_ANGLE_DELTA = 130.0
+        const val MAX_LENGTH = 140.0
+        const val MIN_LENGTH = 60.0
+        const val DECAY_CONSTANT = 0.025
+
     }
 
 }

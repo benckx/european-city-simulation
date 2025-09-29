@@ -3,6 +3,8 @@ package simulation.services
 import simulation.model.Polygon
 import simulation.model.Triangle
 
+const val CLUSTERING_MAX_ANGLE = 140.0
+
 /**
  * Merges pairs of triangles that share a hypotenuse into quadrilaterals.
  * Triangles that do not share a hypotenuse with another triangle remain unchanged.
@@ -30,10 +32,11 @@ fun mergeTrianglesToQuadrilaterals(triangles: List<Triangle>, sizeIndex: Int = 2
             if (points.size == 4) {
                 val quadrilateral = Polygon(points)
 
-                // Check if quadrilateral is convex
-                if (quadrilateral.isConvex()) {
-                    quadrilaterals.add(quadrilateral)
-                    mergedTriangles.addAll(trianglesToMerge)
+                // check if quadrilateral is convex
+                // and has all interior angles are smaller than a threshold (to avoid non-convex-looking shapes)
+                if (quadrilateral.isConvex() && quadrilateral.interiorAngles().max() <= CLUSTERING_MAX_ANGLE) {
+                    quadrilaterals += quadrilateral
+                    mergedTriangles += trianglesToMerge
                 }
             }
         }

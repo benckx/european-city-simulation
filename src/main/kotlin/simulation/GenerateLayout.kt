@@ -6,7 +6,6 @@ import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.QuadrilateralSubdivision
 import simulation.services.LadderDetection.Companion.detectLadders
-import simulation.services.Palette.Companion.allPalettes
 import simulation.services.Palette.Companion.blueSerenity
 import simulation.services.Palette.Companion.pastelRainbow
 import simulation.services.Palette.Companion.softRainbow
@@ -72,17 +71,19 @@ private fun logLayout(layout: Layout, name: String = "layout"): String {
 private fun applyMultiPhasesSubdivisions(fileNamePrefix: String, layout: Layout): Layout {
     var newLayout = layout
     var subdivisions = layout.calculateQuadrilateralSubdivisions()
-    var i = 1
+    var iteration = 1
 
     while (subdivisions.isNotEmpty()) {
         outputToPng(
             layout = newLayout,
-            fileName = "${fileNamePrefix}_phase2_subdivisions_iter${i}",
-            clustersOfEdges = subdivisions.map { it.bothSidesEdges() }
+            fileName = "${fileNamePrefix}_phase2_subdivisions_iter${iteration}",
+            clustersOfEdges = subdivisions.map { it.bothSidesEdges() },
+            labelsAt = postDivisionInfoLabels(subdivisions),
+            labelFontSize = 14f,
         )
         newLayout = newLayout.splitQuadrilaterals(subdivisions)
         subdivisions = newLayout.calculateQuadrilateralSubdivisions()
-        i++
+        iteration++
     }
     return newLayout
 }
@@ -94,9 +95,16 @@ fun main() {
     (1..NUMBER_OF_LAYOUT).forEach { i ->
         val fileNamePrefix = "layout_${String.format("%04d", i)}"
         val crossLineRatio = .33
-        val triangles = createBaseTriangulation(numberOfPoints = 30, requiredMinAngle = 20)
+        val triangles = createBaseTriangulation(numberOfPoints = 40, requiredMinAngle = 20)
         val polygons = mergeTrianglesToQuadrilaterals(triangles)
         val layout1 = Layout(polygons)
+
+        // init triangles
+        outputToPng(
+            layout = Layout(triangles),
+            fileName = "${fileNamePrefix}_phase0_triangles",
+            mainEdgeColor = Color.YELLOW
+        )
 
         val ladders = detectLadders(layout1)
         val ladderCrossLines = ladders.map { it.crossingLine(ratio = crossLineRatio) }

@@ -31,6 +31,7 @@ data class QuadrilateralSubdivision(
             return points.all { p -> edges.count { edge -> edge.containsPoint(p) } == 2 }
         }
 
+        // FIXME: it's probably not worth checking since it's filtered out later anyway
         fun containAnyOtherPoints(polygon: Polygon) =
             allPoints.any { p -> !polygon.points.contains(p) && polygon.containsPoint(p) }
 

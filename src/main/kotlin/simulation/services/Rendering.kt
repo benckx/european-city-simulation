@@ -38,7 +38,7 @@ fun outputToPng(
     clusterPalette: Palette = pastelRainbow,
     polygonFillingPalette: Palette = earthyTones,
     labelsAt: Map<Point, String> = emptyMap(),
-    labelFontSize: Float = 40f,
+    labelFontSize: Float = 30f,
     subDirectory: String? = null,
     fileName: String = "layout"
 ) {
@@ -165,6 +165,7 @@ fun outputToPng(
     }
 
     // write
+    logger.info { "writing $outputFile" }
     ImageIO.write(image, "PNG", outputFile)
 }
 
