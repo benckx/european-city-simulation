@@ -38,37 +38,62 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
     }
 
     fun calculateSubdivisionFactor(): Pair<Int, Int>? {
-        if (irregularityIndex() <= .6) {
-            val maxEdgeLength = 110
-            val pairs = oppositeEdgesTuples().toList()
-            val shortEdges = pairs.minBy { it.avgLength() }
-            val longEdges = pairs.maxBy { it.avgLength() }
-            val shortLength = shortEdges.minLength()
-            val longLength = longEdges.minLength() // FIXME: should this be maxLength() for longEdges?
-            val shortDiv = ceil(shortLength / maxEdgeLength).toInt()
-            val longDiv = ceil(longLength / maxEdgeLength).toInt()
-            logger.debug {
-                val shortEdge = String.format("%.1f", shortLength)
-                val longEdge = String.format("%.1f", longLength)
-                "[subdivision] ${shortEdge}x${longEdge}, ${shortDiv}x${longDiv}"
-            }
-            if (shortDiv >= 1 && longDiv >= 1) {
-                return shortDiv to longDiv
-            }
+        val angleToMaxEdge = listOf(
+            20 to 70.0,
+            30 to 80.0,
+            60 to 100.0,
+            70 to 110.0,
+            80 to 130.0,
+            90 to 140.0,
+            100 to 150.0,
+            120 to 180.0,
+            140 to 200.0
+        )
+
+        val angles = interiorAngles()
+        val minAngle = angles.min()
+        val maxAngle = angles.max()
+        val angleDelta = maxAngle - minAngle
+
+        val max = angleToMaxEdge.maxOf { it.second }
+        val referenceEdgeLength = angleToMaxEdge.find { (angle, _) -> angleDelta <= angle }?.second ?: max
+        val pairs = oppositeEdgesTuples().toList()
+        val shortEdges = pairs.minBy { it.avgLength() }
+        val longEdges = pairs.maxBy { it.avgLength() }
+        val shortLength = shortEdges.minLength()
+        val longLength = longEdges.minLength() // FIXME: should this be maxLength() for longEdges?
+        val shortDiv = ceil(shortLength / referenceEdgeLength).toInt()
+        val longDiv = ceil(longLength / referenceEdgeLength).toInt()
+        logger.debug {
+            val shortEdge = String.format("%.1f", shortLength)
+            val longEdge = String.format("%.1f", longLength)
+            "[subdivision] Δ${angleDelta.toInt()}°, maxEdgeLength=${referenceEdgeLength} -> ${shortDiv}x${longDiv} (${shortEdge}x${longEdge})"
         }
-
-        return null
+        return if (shortDiv >= 1 && longDiv >= 1) {
+            shortDiv to longDiv
+        } else {
+            null
+        }
     }
-
 
     fun calculateSubdivision(shortDiv: Int, longDiv: Int): QuadrilateralSubdivision {
         fun calculateSubDivisionOnOpposeEdgeTuple(edgesTuple: OppositeEdgesTuple, div: Int): List<Edge> {
             val oppositeEdges = edgesTuple.edges.toList()
             val edge1 = oppositeEdges[0]
             val edge2 = oppositeEdges[1]
+            val edgeLength = listOf(edge1.length, edge2.length).min()
+            val segmentLength = (edgeLength / div)
 
-            val points1 = edge1.pointsDividedInto(div)
-            var points2 = edge2.pointsDividedInto(div)
+            var points1: List<Point>
+            var points2: List<Point>
+
+            if (div == 2) {
+                points1 = edge1.pointsAt(.5).toList()
+                points2 = edge2.pointsAt(.5).toList()
+            } else {
+                points1 = edge1.pointsDividedBy(segmentLength).take(div - 1)
+                points2 = edge2.pointsDividedBy(segmentLength).take(div - 1)
+            }
 
             // if list of points are in opposite directions (however both sorted), reverse one of them
             val firstEdge = Edge(points1.first(), points2.first())
@@ -76,11 +101,11 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
             val intersects = firstEdge.intersectionPoint(lastEdge) != null
 
             if (intersects) {
-                points2 = points2.reversed()
+                points2 = edge2.reverse().pointsDividedBy(segmentLength).take(div - 1)
             }
 
-            require(points1.size == div - 1) { "Expected ${div - 1} points for divisor $div on edge 1" }
-            require(points2.size == div - 1) { "Expected ${div - 1} points for divisor $div on edge 2" }
+            require(points1.size == div - 1) { "Expected ${div - 1} points but got ${points1.size} for divisor $div on edge 1" }
+            require(points2.size == div - 1) { "Expected ${div - 1} points but got ${points2.size} for divisor $div on edge 2" }
 
             val newEdges = points1.zip(points2) { p1, p2 -> Edge(p1, p2) }
 
@@ -94,8 +119,8 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
             return newEdges
         }
 
-        require(shortDiv <= longDiv) { "shortDiv must be less than or equal to longDiv" }
-        require(shortDiv > 0 && longDiv > 0) { "Division factors must be positive" }
+        require(shortDiv <= longDiv) { "shortDiv ($shortDiv) must be <= longDiv ($longDiv)" }
+        require(shortDiv > 0 && longDiv > 0) { "Division factors must be positive, ${shortDiv}x${longDiv}" }
 
         val tuples = oppositeEdgesTuples()
         val shortEdgesTuple = tuples.toList().minBy { it.avgLength() }

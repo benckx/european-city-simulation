@@ -4,11 +4,17 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
+import simulation.model.QuadrilateralSubdivision
 import simulation.services.LadderDetection.Companion.detectLadders
+import simulation.services.Palette.Companion.allPalettes
 import simulation.services.Palette.Companion.blueSerenity
+import simulation.services.Palette.Companion.pastelRainbow
+import simulation.services.Palette.Companion.softRainbow
+import simulation.services.Palette.Companion.springGreenHarmony
 import simulation.services.createBaseTriangulation
 import simulation.services.mergeTrianglesToQuadrilaterals
 import simulation.services.outputToPng
+import java.awt.Color
 
 private val logger = KotlinLogging.logger {}
 
@@ -25,7 +31,7 @@ private fun ladderLabels(ladders: List<Ladder>): Map<Point, String> {
     }.toMap()
 }
 
-private fun infoLabels(layout: Layout): Map<Point, String> {
+private fun preDivisionInfoLabels(layout: Layout): Map<Point, String> {
     return layout.quadrilaterals().associate { q ->
         val lengths = q.edges.map { it.length }
 
@@ -39,16 +45,54 @@ private fun infoLabels(layout: Layout): Map<Point, String> {
     }
 }
 
+private fun postDivisionInfoLabels(subdivisions: List<QuadrilateralSubdivision>): Map<Point, String> {
+    return subdivisions.associate { subdivision ->
+        val quadrilateral = subdivision.quadrilateral
+        val (shortDiv, longDiv) = subdivision.divisionFactors()
+        val angles = quadrilateral.interiorAngles()
+        val minAngle = angles.min()
+        val maxAngle = angles.max()
+
+        val lines = listOf(
+            "${shortDiv}x${longDiv}",
+            "${minAngle.toInt()}°-${maxAngle.toInt()}° (Δ${(maxAngle - minAngle).toInt()})°",
+            "irreg: %.2f".format(quadrilateral.irregularityIndex())
+        )
+
+        quadrilateral.findCentroid() to lines.joinToString("\n")
+    }
+}
+
 private fun logLayout(layout: Layout, name: String = "layout"): String {
     return "[$name] #polygons: ${layout.polygons.size}, " +
             "#triangles: ${layout.triangles().size}, " +
             "#quadrilaterals: ${layout.quadrilaterals().size}"
 }
 
+private fun applyMultiPhasesSubdivisions(fileNamePrefix: String, layout: Layout): Layout {
+    var newLayout = layout
+    var subdivisions = layout.calculateQuadrilateralSubdivisions()
+    var i = 1
+
+    while (subdivisions.isNotEmpty()) {
+        outputToPng(
+            layout = newLayout,
+            fileName = "${fileNamePrefix}_phase2_subdivisions_iter${i}",
+            clustersOfEdges = subdivisions.map { it.bothSidesEdges() }
+        )
+        newLayout = newLayout.splitQuadrilaterals(subdivisions)
+        subdivisions = newLayout.calculateQuadrilateralSubdivisions()
+        i++
+    }
+    return newLayout
+}
+
 fun main() {
     logger.info { "generating layout" }
+    val palettes = listOf(pastelRainbow, softRainbow, blueSerenity, springGreenHarmony)
+
     (1..NUMBER_OF_LAYOUT).forEach { i ->
-        val output = "layout_${String.format("%04d", i)}"
+        val fileNamePrefix = "layout_${String.format("%04d", i)}"
         val crossLineRatio = .33
         val triangles = createBaseTriangulation(numberOfPoints = 30, requiredMinAngle = 20)
         val polygons = mergeTrianglesToQuadrilaterals(triangles)
@@ -68,7 +112,7 @@ fun main() {
             layout = layout1,
             clustersOfEdges = ladders.map { it.edges },
             labelsAt = ladderLabels(ladders),
-            fileName = "${output}_phase1_ladders",
+            fileName = "${fileNamePrefix}_phase1_ladders",
             clusterEdgeStroke = 12f,
         )
 
@@ -76,7 +120,7 @@ fun main() {
         outputToPng(
             layout = layout1,
             clustersOfEdges = ladderCrossLines.map { it.edges },
-            fileName = "${output}_phase1_ladders_crosslines",
+            fileName = "${fileNamePrefix}_phase1_ladders_crosslines",
         )
 
         // actually split along ladder cross lines
@@ -85,38 +129,31 @@ fun main() {
         // calculate and apply further subdivisions
         outputToPng(
             layout = layout2,
-            fileName = "${output}_phase2_metrics",
-            labelsAt = infoLabels(layout2),
+            fileName = "${fileNamePrefix}_phase2_metrics",
+            labelsAt = preDivisionInfoLabels(layout2),
             labelFontSize = 14f
         )
 
-        val subdivisions = layout2.calculateQuadrilateralSubdivisions()
-        val layout3 = layout2.splitQuadrilaterals(subdivisions)
-
-        outputToPng(
-            layout = layout2,
-            fileName = "${output}_phase2_subdivisions",
-            clustersOfEdges = subdivisions.map { it.shortSideEdges + it.longSideEdges }
-        )
+        val layout3 = applyMultiPhasesSubdivisions(fileNamePrefix, layout2)
 
         outputToPng(
             layout = layout3,
-            fileName = "${output}_phase2_subdivisions_applied",
-            mainEdgeStroke = 18f,
-            secondaryEdgeStroke = 4f,
+            fileName = "${fileNamePrefix}_phase2_subdivisions_applied",
+            mainEdgeColor = Color.GRAY
         )
 
-        outputToPng(
-            layout = layout3,
-            fileName = "${output}_phase2_subdivisions_applied_filled",
-            fillPolygons = true,
-            polygonFillingPalette = blueSerenity,
-            mainEdgeStroke = 18f,
-            secondaryEdgeStroke = 4f,
-        )
+        palettes.forEachIndexed { i, palette ->
+            val fileName = "${fileNamePrefix}_phase2_subdivisions_applied_filled_${String.format("%02d", i + 1)}"
+            outputToPng(
+                layout = layout3,
+                fileName = fileName,
+                fillPolygons = true,
+                polygonFillingPalette = palette
+            )
+        }
 
-        logger.info { logLayout(layout1) }
-        logger.info { logLayout(layout2) }
-        logger.info { logLayout(layout3) }
+        logger.info { logLayout(layout1, "layout1") }
+        logger.info { logLayout(layout2, "layout2") }
+        logger.info { logLayout(layout3, "layout3") }
     }
 }

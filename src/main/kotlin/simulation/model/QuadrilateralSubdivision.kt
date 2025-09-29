@@ -6,6 +6,12 @@ data class QuadrilateralSubdivision(
     val longSideEdges: List<Edge>
 ) {
 
+    fun bothSidesEdges(): List<Edge> =
+        shortSideEdges + longSideEdges
+
+    fun divisionFactors(): Pair<Int, Int> =
+        Pair(shortSideEdges.size + 1, longSideEdges.size + 1)
+
     fun allPoints(): Set<Point> {
         val points = mutableSetOf<Point>()
         points += quadrilateral.points

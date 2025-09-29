@@ -1,6 +1,7 @@
 package simulation.model
 
 import kotlinx.serialization.Serializable
+import java.lang.Math.toDegrees
 import kotlin.math.atan2
 
 @Serializable
@@ -34,6 +35,39 @@ open class Polygon(
         val centerX = points.map { it.x }.average()
         val centerY = points.map { it.y }.average()
         return Point(centerX, centerY)
+    }
+
+    /**
+     * Calculate all interior angles of the polygon in degrees
+     * Assumes the polygon is convex
+     */
+    fun interiorAngles(): List<Double> {
+        val orderedPoints = orderedPoints()
+        val angles = mutableListOf<Double>()
+
+        for (i in orderedPoints.indices) {
+            val prev = orderedPoints[(i - 1 + orderedPoints.size) % orderedPoints.size]
+            val current = orderedPoints[i]
+            val next = orderedPoints[(i + 1) % orderedPoints.size]
+
+            // calculate vectors from current point to previous and next points
+            val vector1 = Point(prev.x - current.x, prev.y - current.y)
+            val vector2 = Point(next.x - current.x, next.y - current.y)
+
+            // calculate dot product and magnitudes
+            val dotProduct = vector1.x * vector2.x + vector1.y * vector2.y
+            val magnitude1 = kotlin.math.sqrt(vector1.x * vector1.x + vector1.y * vector1.y)
+            val magnitude2 = kotlin.math.sqrt(vector2.x * vector2.x + vector2.y * vector2.y)
+
+            // calculate angle using acos of normalized dot product
+            val cosAngle = dotProduct / (magnitude1 * magnitude2)
+            val angleRadians = kotlin.math.acos(cosAngle.coerceIn(-1.0, 1.0))
+
+            // convert to degrees
+            angles += toDegrees(angleRadians)
+        }
+
+        return angles
     }
 
     /**

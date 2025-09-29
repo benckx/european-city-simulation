@@ -12,6 +12,12 @@ data class Edge(val p1: Point, val p2: Point) {
     val points
         get() = setOf(p1, p2)
 
+    /**
+     * Swap p1 and p2
+     */
+    fun reverse(): Edge =
+        Edge(p2, p1)
+
     fun shift(offset: Point): Edge =
         Edge(p1.shift(offset), p2.shift(offset))
 
@@ -42,17 +48,17 @@ data class Edge(val p1: Point, val p2: Point) {
     /**
      * Sorted from p1 to p2
      */
-    fun pointsDividedInto(parts: Int): List<Point> {
-        require(parts > 1) { "Parts must be greater than 1" }
-        val divisionFactor = 1.0 / parts
-        return (1 until parts)
-            .map { i ->
-                val percentage = i * divisionFactor
-                val x = p1.x + (p2.x - p1.x) * percentage
-                val y = p1.y + (p2.y - p1.y) * percentage
-                Point(x, y)
-            }
-            .toList()
+    fun pointsDividedBy(segmentLength: Double): List<Point> {
+        val points = mutableListOf<Point>()
+        val percentageIncrement = segmentLength / length
+        var percentage = percentageIncrement
+        while (percentage < 1.0) {
+            val x = p1.x + (p2.x - p1.x) * percentage
+            val y = p1.y + (p2.y - p1.y) * percentage
+            points += Point(x, y)
+            percentage += percentageIncrement
+        }
+        return points.toList()
     }
 
     fun intersectionPoint(edge: Edge): Point? {

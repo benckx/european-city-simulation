@@ -110,6 +110,17 @@ data class Palette(val colors: List<Color>) {
                 "abc4ff"
             )
 
+        val allPalettes =
+            listOf(
+                earthyTones,
+                pastelRainbow,
+                costalBlues,
+                fieryRedSunset,
+                softRainbow,
+                springGreenHarmony,
+                blueSerenity
+            )
+
     }
 
 }

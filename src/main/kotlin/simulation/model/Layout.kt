@@ -38,7 +38,11 @@ data class Layout(
                 if (factor != null) {
                     val shortDiv = minOf(factor.first, factor.second)
                     val longDiv = maxOf(factor.first, factor.second)
-                    quadrilateral.calculateSubdivision(shortDiv, longDiv)
+                    if (shortDiv > 1 || longDiv > 1) {
+                        quadrilateral.calculateSubdivision(shortDiv, longDiv)
+                    } else {
+                        null
+                    }
                 } else {
                     null
                 }
