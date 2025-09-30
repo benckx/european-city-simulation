@@ -40,6 +40,13 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
         return maxOf(lengthAverage1, lengthAverage2) / minOf(lengthAverage1, lengthAverage2)
     }
 
+    fun isTrapezoidal(thresholdAngle: Double = 100.0): Boolean {
+        val angles = interiorAngles()
+        return successiveCornersIndexPairs.any { (i1, i2) ->
+            angles[i1] >= thresholdAngle && angles[i2] >= thresholdAngle
+        }
+    }
+
     fun calculateSubdivisionFactor(): Pair<Int, Int>? {
         // calculate angle delta
         val angles = interiorAngles()
@@ -238,6 +245,8 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
         const val MAX_LENGTH = 140.0
         const val MIN_LENGTH = 60.0
         const val DECAY_CONSTANT = 0.025
+
+        val successiveCornersIndexPairs = listOf((0 to 1), (1 to 2), (2 to 3), (3 to 0))
 
     }
 

@@ -34,3 +34,4 @@ to [r/generative](https://www.reddit.com/r/generative)
 
 - If a quadrilateral is very trapezoidal, split it in 2 with right angles before subdividing should ensure
   sub-quadrilaterals are more rectangular (because we have a side with right angles to start subdividing from)
+- Merge the 4 contiguous triangles into 1 quadrilateral if 1 point is in the 4 triangles

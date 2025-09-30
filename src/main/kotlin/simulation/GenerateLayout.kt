@@ -5,7 +5,6 @@ import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.QuadrilateralSubdivision
-import simulation.model.Triangle
 import simulation.services.LadderDetection.Companion.detectLadders
 import simulation.services.Palette.Companion.blueSerenity
 import simulation.services.Palette.Companion.pastelRainbow
@@ -20,6 +19,7 @@ private val logger = KotlinLogging.logger {}
 
 const val NUMBER_OF_LAYOUT = 1
 
+// calculate and apply further subdivisions
 private fun ladderLabels(ladders: List<Ladder>): Map<Point, String> {
     return ladders.flatMapIndexed { ladderIndex, ladder ->
         ladder.edges.mapIndexed { edgeIndex, edge ->
@@ -60,6 +60,18 @@ private fun postDivisionInfoLabels(subdivisions: List<QuadrilateralSubdivision>)
         )
 
         quadrilateral.findCentroid() to lines.joinToString("\n")
+    }
+}
+
+private fun allAnglesInfoLabels(layout: Layout): Map<Point, String> {
+    return layout.quadrilaterals().associate { q ->
+        val angles = q.interiorAngles()
+        val lines = listOf(
+            "${angles[0].toInt()}°, ${angles[1].toInt()}°",
+            "${angles[2].toInt()}°, ${angles[3].toInt()}°"
+        )
+
+        q.findCentroid() to lines.joinToString("\n")
     }
 }
 
@@ -136,14 +148,28 @@ fun main() {
         // actually split along ladder cross lines
         val layout2 = layout1.splitQuadrilateralsAlongEdges(ladderCrossLinesEdges)
 
-        // calculate and apply further subdivisions
+        outputToPng(
+            layout = layout2,
+            fileName = "${fileNamePrefix}_phase2_angle_metrics",
+            labelsAt = allAnglesInfoLabels(layout2),
+            labelFontSize = 14f
+        )
+
+        outputToPng(
+            layout = layout2,
+            fileName = "${fileNamePrefix}_phase2_angle_metrics_flagged",
+            clustersOfEdges = layout2.quadrilaterals().filter { it.isTrapezoidal() }.map { it.edges },
+            clusterEdgeStroke = 4f
+        )
+
         outputToPng(
             layout = layout2,
             fileName = "${fileNamePrefix}_phase2_metrics",
             labelsAt = preDivisionInfoLabels(layout2),
-            labelFontSize = 14f
+            labelFontSize = 20f
         )
 
+        // calculate and apply further subdivisions
         val layout3 = applyMultiPhasesSubdivisions(fileNamePrefix, layout2)
 
         outputToPng(
