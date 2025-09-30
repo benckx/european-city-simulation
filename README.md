@@ -20,3 +20,12 @@ It's still very much a work in progress, so I won't spend too much time on docum
 
 It's a Gradle-based Kotlin project. The easiest way could be to
 run [GenerateLayout.kt](src/main/kotlin/simulation/GenerateLayout.kt) in IntelliJ.
+
+# Gallery
+
+Occasionally, the intermediary representations and debug outputs are kinda neat looking on their own, so I'll post them
+to [r/generative](https://www.reddit.com/r/generative)
+
+- [2025-09-21](https://www.reddit.com/r/generative/comments/1nmmkoc/working_on_a_procedural_city_layout_algorithm/)
+- [2025-09-28](https://www.reddit.com/r/generative/comments/1nsjnea/intermediary_representations/)
+- [2025-09-29](https://www.reddit.com/r/generative/comments/1ntlhoy/update_on_my_procedural_city_layout_algorithm/)
