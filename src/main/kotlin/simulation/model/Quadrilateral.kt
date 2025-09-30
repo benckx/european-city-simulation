@@ -40,7 +40,7 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
         return maxOf(lengthAverage1, lengthAverage2) / minOf(lengthAverage1, lengthAverage2)
     }
 
-    fun isTrapezoidal(thresholdAngle: Double = 100.0): Boolean {
+    fun isTrapezoidal(thresholdAngle: Double = 110.0): Boolean {
         val angles = interiorAngles()
         return successiveCornersIndexPairs.any { (i1, i2) ->
             angles[i1] >= thresholdAngle && angles[i2] >= thresholdAngle

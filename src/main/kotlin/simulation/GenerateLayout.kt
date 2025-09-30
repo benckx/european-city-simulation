@@ -159,7 +159,7 @@ fun main() {
             layout = layout2,
             fileName = "${fileNamePrefix}_phase2_angle_metrics_flagged",
             clustersOfEdges = layout2.quadrilaterals().filter { it.isTrapezoidal() }.map { it.edges },
-            clusterEdgeStroke = 4f
+            clusterEdgeStroke = 20f
         )
 
         outputToPng(
