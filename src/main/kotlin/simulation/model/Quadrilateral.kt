@@ -1,6 +1,7 @@
 package simulation.model
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.min
 import kotlin.math.round
@@ -81,8 +82,8 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
     fun calculateSubdivision(shortDiv: Int, longDiv: Int): QuadrilateralSubdivision {
         fun calculateSubDivisionOnOpposeEdgeTuple(edgesTuple: OppositeEdgesTuple, div: Int): List<Edge> {
             val oppositeEdges = edgesTuple.edges.toList()
-            val edge1 = oppositeEdges[0]
-            val edge2 = oppositeEdges[1]
+            var edge1 = oppositeEdges[0]
+            var edge2 = oppositeEdges[1]
             val edgeLength = listOf(edge1.length, edge2.length).min()
             val segmentLength = (edgeLength / div)
 
@@ -97,13 +98,33 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
                 points2 = edge2.pointsDividedBy(segmentLength).take(div - 1)
             }
 
-            // if list of points are in opposite directions (however both sorted), reverse one of them
-            val firstEdge = Edge(points1.first(), points2.first())
-            val lastEdge = Edge(points1.last(), points2.last())
-            val intersects = firstEdge.intersectionPoint(lastEdge) != null
+            if (div > 2) {
+                // if list of points are in opposite directions (however both sorted), reverse one of them
+                val firstEdge = Edge(points1.first(), points2.first())
+                val lastEdge = Edge(points1.last(), points2.last())
+                val intersects = firstEdge.intersectionPoint(lastEdge) != null
 
-            if (intersects) {
-                points2 = edge2.reverse().pointsDividedBy(segmentLength).take(div - 1)
+                if (intersects) {
+                    edge2 = edge2.reverse()
+                    points2 = edge2.pointsDividedBy(segmentLength).take(div - 1)
+                }
+
+                // ensure we start on the side where the angles are most similar to a right angle
+                // to maximize the chances of having rectangular sub-quadrilaterals
+                val anglesAndPoints = interiorAnglesAndPoints()
+
+                fun deltaAt(sideSelector: (Edge) -> Point, vararg edges: Edge): Double =
+                    edges.sumOf { edge -> abs(90 - anglesAndPoints.find { it.first == sideSelector(edge) }!!.second) }
+
+                val deltaAtStart = deltaAt({ it.p1 }, edge1, edge2)
+                val deltaAtEnd = deltaAt({ it.p2 }, edge1, edge2)
+
+                if (deltaAtStart > deltaAtEnd) {
+                    edge1 = edge1.reverse()
+                    edge2 = edge2.reverse()
+                    points1 = edge1.pointsDividedBy(segmentLength).take(div - 1)
+                    points2 = edge2.pointsDividedBy(segmentLength).take(div - 1)
+                }
             }
 
             require(points1.size == div - 1) { "Expected ${div - 1} points but got ${points1.size} for divisor $div on edge 1" }

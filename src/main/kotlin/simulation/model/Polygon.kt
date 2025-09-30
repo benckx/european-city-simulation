@@ -41,9 +41,9 @@ open class Polygon(
      * Calculate all interior angles of the polygon in degrees
      * Assumes the polygon is convex
      */
-    fun interiorAngles(): List<Double> {
+    fun interiorAnglesAndPoints(): List<Pair<Point, Double>> {
         val orderedPoints = orderedPoints()
-        val angles = mutableListOf<Double>()
+        val anglesAndPoints = mutableListOf<Pair<Point, Double>>()
 
         for (i in orderedPoints.indices) {
             val prev = orderedPoints[(i - 1 + orderedPoints.size) % orderedPoints.size]
@@ -64,11 +64,16 @@ open class Polygon(
             val angleRadians = kotlin.math.acos(cosAngle.coerceIn(-1.0, 1.0))
 
             // convert to degrees
-            angles += toDegrees(angleRadians)
+            anglesAndPoints += current to toDegrees(angleRadians)
         }
 
-        return angles
+        return anglesAndPoints
     }
+
+    /**
+     * See [interiorAnglesAndPoints]
+     */
+    fun interiorAngles(): List<Double> = interiorAnglesAndPoints().map { it.second }
 
     /**
      * Order the points in clockwise, convexly order around the centroid
