@@ -3,7 +3,7 @@ package simulation.services
 import simulation.model.Polygon
 import simulation.model.Triangle
 
-const val CLUSTERING_MAX_ANGLE = 140.0
+const val CLUSTERING_MAX_ANGLE = 150.0
 
 /**
  * Merges pairs of triangles that share a hypotenuse into quadrilaterals.

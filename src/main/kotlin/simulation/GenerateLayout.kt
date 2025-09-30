@@ -5,6 +5,7 @@ import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.QuadrilateralSubdivision
+import simulation.model.Triangle
 import simulation.services.LadderDetection.Companion.detectLadders
 import simulation.services.Palette.Companion.blueSerenity
 import simulation.services.Palette.Companion.pastelRainbow
@@ -95,9 +96,10 @@ fun main() {
     (1..NUMBER_OF_LAYOUT).forEach { i ->
         val fileNamePrefix = "layout_${String.format("%04d", i)}"
         val crossLineRatio = .33
-        val triangles = createBaseTriangulation(numberOfPoints = 40, requiredMinAngle = 20)
+        val triangles = createBaseTriangulation(numberOfPoints = 48, requiredMinAngle = 16)
         val polygons = mergeTrianglesToQuadrilaterals(triangles)
         val layout1 = Layout(polygons)
+        // TODO: we can also merge triangle to quadri 4 by 4 by find points shared between 4 triangles
 
         // init triangles
         outputToPng(

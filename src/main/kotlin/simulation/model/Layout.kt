@@ -19,7 +19,7 @@ data class Layout(
         }
     }
 
-    fun triangles(): List<Polygon> {
+    fun triangles(): List<Triangle> {
         return polygons
             .filter { polygon -> polygon.isTriangle() }
             .map { polygon -> Triangle(polygon.points) }

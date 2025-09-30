@@ -8,8 +8,8 @@ import simulation.model.Triangle
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Stream
 
-const val WIDTH = 2_600
-const val HEIGHT = 2_600
+const val WIDTH = 2_800
+const val HEIGHT = 2_800
 const val MIN_DISTANCE_BETWEEN_POINTS = 200
 const val MAX_DISTANCE_BETWEEN_POINTS = 500
 
