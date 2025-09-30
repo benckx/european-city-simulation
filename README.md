@@ -29,3 +29,8 @@ to [r/generative](https://www.reddit.com/r/generative)
 - [2025-09-21](https://www.reddit.com/r/generative/comments/1nmmkoc/working_on_a_procedural_city_layout_algorithm/)
 - [2025-09-28](https://www.reddit.com/r/generative/comments/1nsjnea/intermediary_representations/)
 - [2025-09-29](https://www.reddit.com/r/generative/comments/1ntlhoy/update_on_my_procedural_city_layout_algorithm/)
+
+# TODO
+
+- If a quadrilateral is very trapezoidal, split it in 2 with right angles before subdividing should ensure
+  sub-quadrilaterals are more rectangular (because we have a side with right angles to start subdividing from)
