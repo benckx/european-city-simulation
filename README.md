@@ -39,3 +39,4 @@ to [r/generative](https://www.reddit.com/r/generative)
   something like that
 - Also use taxi cab distance instead of Euclidean distance when creating points for the triangulation
 - Merge the 4 contiguous triangles into 1 quadrilateral if 1 point is in the 4 triangles
+- Split main function for all the different phases (maybe with a `T : { Layout? -> Layout }`)
