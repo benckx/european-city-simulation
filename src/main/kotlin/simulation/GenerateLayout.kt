@@ -19,7 +19,6 @@ private val logger = KotlinLogging.logger {}
 
 const val NUMBER_OF_LAYOUT = 1
 
-// calculate and apply further subdivisions
 private fun ladderLabels(ladders: List<Ladder>): Map<Point, String> {
     return ladders.flatMapIndexed { ladderIndex, ladder ->
         ladder.edges.mapIndexed { edgeIndex, edge ->
