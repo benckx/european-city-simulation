@@ -34,3 +34,4 @@ to [r/generative](https://www.reddit.com/r/generative)
 
 - If a quadrilateral is very trapezoidal, split it in 2 with right angles before subdividing should ensure
   sub-quadrilaterals are more rectangular (because we have a side with right angles to start subdividing from)
+- Init triangulation could be incremental: if we find a triangulation with 15 points, we could keep those points then add 3 points instead of starting from 0 every time
