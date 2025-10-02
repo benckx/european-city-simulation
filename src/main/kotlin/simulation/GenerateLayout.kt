@@ -2,7 +2,6 @@ package simulation
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import simulation.model.Layout
-import simulation.model.Point
 import simulation.services.LadderDetection.Companion.detectLadders
 import simulation.services.Palette.Companion.blueSerenity
 import simulation.services.Palette.Companion.pastelRainbow
@@ -17,18 +16,6 @@ import java.awt.Color
 private val logger = KotlinLogging.logger {}
 
 private const val NUMBER_OF_LAYOUT = 1
-
-private fun allAnglesInfoLabels(layout: Layout): Map<Point, String> {
-    return layout.quadrilaterals().associate { q ->
-        val angles = q.interiorAngles()
-        val lines = listOf(
-            "${angles[0].toInt()}°, ${angles[1].toInt()}°",
-            "${angles[2].toInt()}°, ${angles[3].toInt()}°"
-        )
-
-        q.findCentroid() to lines.joinToString("\n")
-    }
-}
 
 private fun applyMultiPhasesSubdivisions(fileNamePrefix: String, layout: Layout): Layout {
     var newLayout = layout

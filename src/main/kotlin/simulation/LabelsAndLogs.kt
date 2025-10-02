@@ -5,6 +5,18 @@ import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.QuadrilateralSubdivision
 
+fun allAnglesInfoLabels(layout: Layout): Map<Point, String> {
+    return layout.quadrilaterals().associate { q ->
+        val angles = q.interiorAngles()
+        val lines = listOf(
+            "${angles[0].toInt()}°, ${angles[1].toInt()}°",
+            "${angles[2].toInt()}°, ${angles[3].toInt()}°"
+        )
+
+        q.findCentroid() to lines.joinToString("\n")
+    }
+}
+
 fun ladderLabels(ladders: List<Ladder>): Map<Point, String> {
     return ladders.flatMapIndexed { ladderIndex, ladder ->
         ladder.edges.mapIndexed { edgeIndex, edge ->
