@@ -15,12 +15,19 @@ import java.awt.RenderingHints.*
 import java.awt.image.BufferedImage
 import java.awt.image.BufferedImage.TYPE_INT_RGB
 import java.io.File
+import java.util.concurrent.Executors
 import javax.imageio.ImageIO
 
 private val logger = KotlinLogging.logger {}
 
 private const val LABEL_PADDING_WIDTH = 4
 private const val LABEL_PADDING_HEIGHT = 2
+
+private val executorService = Executors.newFixedThreadPool(6)
+
+fun shutdownRenderingService() {
+    executorService.shutdown()
+}
 
 fun outputToPng(
     layout: Layout,
@@ -42,131 +49,133 @@ fun outputToPng(
     subDirectory: String? = null,
     fileName: String = "layout"
 ) {
-    val layoutPoints = layout.polygons.flatMap { it.points }.distinct()
-    val minX = layoutPoints.minOf { it.x }
-    val maxX = layoutPoints.maxOf { it.x }
-    val minY = layoutPoints.minOf { it.y }
-    val maxY = layoutPoints.maxOf { it.y }
+    executorService.submit {
+        val layoutPoints = layout.polygons.flatMap { it.points }.distinct()
+        val minX = layoutPoints.minOf { it.x }
+        val maxX = layoutPoints.maxOf { it.x }
+        val minY = layoutPoints.minOf { it.y }
+        val maxY = layoutPoints.maxOf { it.y }
 
-    // calculate dynamic image dimensions with padding
-    val padding = 80.0
-    val width = (maxX - minX + 2 * padding).toInt()
-    val height = (maxY - minY + 2 * padding).toInt()
+        // calculate dynamic image dimensions with padding
+        val padding = 80.0
+        val width = (maxX - minX + 2 * padding).toInt()
+        val height = (maxY - minY + 2 * padding).toInt()
 
-    // calculate offsets to center content
-    val offsetX = padding - minX
-    val offsetY = padding - minY
-    val offset = Point(offsetX, offsetY)
+        // calculate offsets to center content
+        val offsetX = padding - minX
+        val offsetY = padding - minY
+        val offset = Point(offsetX, offsetY)
 
-    logger.debug { "offset: ${offsetX}x${offsetY}" }
+        logger.debug { "offset: ${offsetX}x${offsetY}" }
 
-    // image
-    val image = BufferedImage(width, height, TYPE_INT_RGB)
-    val graphics = image.createGraphics()
+        // image
+        val image = BufferedImage(width, height, TYPE_INT_RGB)
+        val graphics = image.createGraphics()
 
-    // anti-aliasing
-    graphics.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON)
-    graphics.setRenderingHint(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON)
+        // anti-aliasing
+        graphics.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON)
+        graphics.setRenderingHint(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON)
 
-    // background color
-    graphics.color = Color.BLACK
-    graphics.fillRect(0, 0, width, height)
+        // background color
+        graphics.color = Color.BLACK
+        graphics.fillRect(0, 0, width, height)
 
-    // fill polygons
-    if (fillPolygons) {
-        layout.polygons.forEachIndexed { index, polygon ->
-            graphics.color = polygonFillingPalette.colorByIndex(index)
-            val orderedPoints = polygon.orderedPoints().map { point -> point.shift(offset) }
-            val xPoints = orderedPoints.map { it.x.toInt() }.toIntArray()
-            val yPoints = orderedPoints.map { it.y.toInt() }.toIntArray()
-            graphics.fillPolygon(xPoints, yPoints, orderedPoints.size)
-        }
-    }
-
-    // draw clusters
-    if (clusterDifferentiationByColor) {
-        // draw points
-        clustersOfPoints.forEachIndexed { index, points ->
-            val color = clusterPalette.colorByIndex(index)
-            graphics.color = color
-            points
-                .map { point -> point.shift(offset) }
-                .forEach { graphics.drawPoint(it, pointThickness) }
+        // fill polygons
+        if (fillPolygons) {
+            layout.polygons.forEachIndexed { index, polygon ->
+                graphics.color = polygonFillingPalette.colorByIndex(index)
+                val orderedPoints = polygon.orderedPoints().map { point -> point.shift(offset) }
+                val xPoints = orderedPoints.map { it.x.toInt() }.toIntArray()
+                val yPoints = orderedPoints.map { it.y.toInt() }.toIntArray()
+                graphics.fillPolygon(xPoints, yPoints, orderedPoints.size)
+            }
         }
 
-        // draw edges
-        graphics.stroke = BasicStroke(clusterEdgeStroke)
-        clustersOfEdges.forEachIndexed { index, edges ->
-            val color = clusterPalette.colorByIndex(index)
-            graphics.color = color
-            edges
+        // draw clusters
+        if (clusterDifferentiationByColor) {
+            // draw points
+            clustersOfPoints.forEachIndexed { index, points ->
+                val color = clusterPalette.colorByIndex(index)
+                graphics.color = color
+                points
+                    .map { point -> point.shift(offset) }
+                    .forEach { graphics.drawPoint(it, pointThickness) }
+            }
+
+            // draw edges
+            graphics.stroke = BasicStroke(clusterEdgeStroke)
+            clustersOfEdges.forEachIndexed { index, edges ->
+                val color = clusterPalette.colorByIndex(index)
+                graphics.color = color
+                edges
+                    .map { edge -> edge.shift(offset) }
+                    .forEach { graphics.drawEdge(it) }
+            }
+        } else {
+            graphics.color = clusterEdgeColor
+
+            // draw points
+            clustersOfPoints.forEach { points ->
+                points
+                    .map { point -> point.shift(offset) }
+                    .forEach { graphics.drawPoint(it, pointThickness) }
+            }
+
+            // draw edges
+            graphics.stroke = BasicStroke(clusterEdgeStroke)
+            clustersOfEdges.forEach { edges ->
+                edges
+                    .map { edge -> edge.shift(offset) }
+                    .forEach { graphics.drawEdge(it) }
+            }
+        }
+
+        // draw secondary edges
+        if (secondaryEdgeStroke > 0f) {
+            graphics.color = secondaryEdgeColor
+            graphics.stroke = BasicStroke(secondaryEdgeStroke)
+            layout.secondaryEdges
                 .map { edge -> edge.shift(offset) }
-                .forEach { graphics.drawEdge(it) }
-        }
-    } else {
-        graphics.color = clusterEdgeColor
-
-        // draw points
-        clustersOfPoints.forEach { points ->
-            points
-                .map { point -> point.shift(offset) }
-                .forEach { graphics.drawPoint(it, pointThickness) }
+                .forEach { edge -> graphics.drawEdge(edge) }
         }
 
-        // draw edges
-        graphics.stroke = BasicStroke(clusterEdgeStroke)
-        clustersOfEdges.forEach { edges ->
-            edges
-                .map { edge -> edge.shift(offset) }
-                .forEach { graphics.drawEdge(it) }
+        // draw main polygon edges
+        if (mainEdgeStroke > 0f) {
+            val excludedFromMainPolygonEdges = (clustersOfEdges.flatten().distinct() + layout.secondaryEdges).toSet()
+            graphics.color = mainEdgeColor
+            graphics.stroke = BasicStroke(mainEdgeStroke, CAP_ROUND, JOIN_ROUND)
+            layout.polygons.flatMap { it.edges }.distinct()
+                .filterNot { mainEdge -> excludedFromMainPolygonEdges.contains(mainEdge) }
+                .map { edge -> edge.shift(offsetX, offsetY) }
+                .forEach { edge -> graphics.drawEdge(edge) }
         }
-    }
 
-    // draw secondary edges
-    if (secondaryEdgeStroke > 0f) {
-        graphics.color = secondaryEdgeColor
-        graphics.stroke = BasicStroke(secondaryEdgeStroke)
-        layout.secondaryEdges
-            .map { edge -> edge.shift(offset) }
-            .forEach { edge -> graphics.drawEdge(edge) }
-    }
+        // draw text
+        graphics.font = graphics.font.deriveFont(labelFontSize)
+        labelsAt.forEach { (point, label) -> graphics.drawLabel(point, label, offset) }
 
-    // draw main polygon edges
-    if (mainEdgeStroke > 0f) {
-        val excludedFromMainPolygonEdges = (clustersOfEdges.flatten().distinct() + layout.secondaryEdges).toSet()
-        graphics.color = mainEdgeColor
-        graphics.stroke = BasicStroke(mainEdgeStroke, CAP_ROUND, JOIN_ROUND)
-        layout.polygons.flatMap { it.edges }.distinct()
-            .filterNot { mainEdge -> excludedFromMainPolygonEdges.contains(mainEdge) }
-            .map { edge -> edge.shift(offsetX, offsetY) }
-            .forEach { edge -> graphics.drawEdge(edge) }
-    }
+        graphics.dispose()
 
-    // draw text
-    graphics.font = graphics.font.deriveFont(labelFontSize)
-    labelsAt.forEach { (point, label) -> graphics.drawLabel(point, label, offset) }
-
-    graphics.dispose()
-
-    // directories
-    val outputDir = File("output")
-    if (!outputDir.exists()) {
-        outputDir.mkdirs()
-    }
-
-    val outputFile = if ((subDirectory) != null) {
-        val subDir = File(outputDir, subDirectory)
-        if (!subDir.exists()) {
-            subDir.mkdirs()
+        // directories
+        val outputDir = File("output")
+        if (!outputDir.exists()) {
+            outputDir.mkdirs()
         }
-        File(subDir, "$fileName.png")
-    } else {
-        File(outputDir, "$fileName.png")
-    }
 
-    // write
-    logger.info { "writing $outputFile" }
-    ImageIO.write(image, "PNG", outputFile)
+        val outputFile = if ((subDirectory) != null) {
+            val subDir = File(outputDir, subDirectory)
+            if (!subDir.exists()) {
+                subDir.mkdirs()
+            }
+            File(subDir, "$fileName.png")
+        } else {
+            File(outputDir, "$fileName.png")
+        }
+
+        // write
+        logger.info { "writing $outputFile" }
+        ImageIO.write(image, "PNG", outputFile)
+    }
 }
 
 private fun Graphics2D.drawEdge(edge: Edge) {
