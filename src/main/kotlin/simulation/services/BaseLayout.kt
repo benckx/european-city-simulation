@@ -1,69 +1,142 @@
 package simulation.services
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import simulation.utils.delaunayTriangulation
-import simulation.utils.distanceBetween
+import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.Triangle
+import simulation.utils.delaunayTriangulation
+import simulation.utils.distanceBetween
+import java.lang.System.currentTimeMillis
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Stream
 
-const val WIDTH = 2_800
-const val HEIGHT = 2_800
-const val MIN_DISTANCE_BETWEEN_POINTS = 200
-const val MAX_DISTANCE_BETWEEN_POINTS = 500
+private const val WIDTH = 3_000
+private const val HEIGHT = 3_000
+private const val MIN_DISTANCE_BETWEEN_POINTS = 200
+private const val MAX_DISTANCE_BETWEEN_POINTS = 500
 
-const val DEFAULT_MIN_ANGLE = 24
-const val DEFAULT_NUMBER_OF_POINTS = 22
+private const val THRESHOLD_NUMBER_OF_POINTS = 12
+private const val INCREMENT_NUMBER_OF_POINTS = 4
 
-const val TIMEOUT = 10_000L
+private const val POINTS_TIMEOUT = 10_000L
+private const val GLOBAL_TRIANGULATION_TIMEOUT = 60_000L
+private const val SINGLE_TRIANGULATION_TIMEOUT = 20_000L
 
 private val logger = KotlinLogging.logger {}
 
-fun createBaseTriangulation(
-    numberOfPoints: Int = DEFAULT_NUMBER_OF_POINTS,
-    requiredMinAngle: Int = DEFAULT_MIN_ANGLE
+fun createBaseTriangulation(requestedNumberOfPoints: Int, requiredMinAngle: Int): List<Layout> {
+    if (requestedNumberOfPoints <= THRESHOLD_NUMBER_OF_POINTS) {
+        return listOf(
+            Layout(
+                growTriangulation(
+                    numberOfNewPoints = requestedNumberOfPoints,
+                    requiredMinAngle = requiredMinAngle,
+                    existingPoints = emptySet(),
+                    existingTriangles = emptySet()
+                )
+            )
+        )
+    } else {
+        val timeoutAt = currentTimeMillis() + GLOBAL_TRIANGULATION_TIMEOUT
+        val existingPoints = mutableSetOf<Point>()
+        val layoutHistory = mutableListOf<Layout>()
+        var numberOfNewPoints = THRESHOLD_NUMBER_OF_POINTS
+        while (existingPoints.size < requestedNumberOfPoints && currentTimeMillis() < timeoutAt) {
+            val existingTriangles = layoutHistory.lastOrNull()?.triangles()?.toSet() ?: emptySet()
+            val triangles = growTriangulation(
+                numberOfNewPoints = numberOfNewPoints,
+                requiredMinAngle = requiredMinAngle,
+                existingPoints = existingPoints,
+                existingTriangles = existingTriangles
+            )
+            if (triangles.isNotEmpty()) {
+                layoutHistory += Layout(triangles)
+                existingPoints += triangles.flatMap { triangle -> triangle.points }
+            }
+            numberOfNewPoints = minOf(INCREMENT_NUMBER_OF_POINTS, requestedNumberOfPoints - existingPoints.size)
+        }
+
+        return if (layoutHistory.isEmpty() || existingPoints.size < requestedNumberOfPoints) {
+            logger.warn { "could only fulfill ${existingPoints.size}/$requestedNumberOfPoints points in ${GLOBAL_TRIANGULATION_TIMEOUT / 1_000} sec., starting over" }
+            createBaseTriangulation(requestedNumberOfPoints, requiredMinAngle)
+        } else {
+            layoutHistory
+        }
+    }
+}
+
+private fun growTriangulation(
+    numberOfNewPoints: Int,
+    requiredMinAngle: Int,
+    existingPoints: Set<Point>,
+    existingTriangles: Set<Triangle>
 ): List<Triangle> {
     val attempts = AtomicInteger(0)
 
+    val logTag = "[${existingPoints.size}+${numberOfNewPoints}]"
+    val timeoutAt = currentTimeMillis() + SINGLE_TRIANGULATION_TIMEOUT
+
     val triangles = Stream.generate {
-        val points = createPoints(numberOfPoints)
-        val triangles = delaunayTriangulation(points)
-        val minAngle = triangles.flatMap { it.angles() }.minOf { it }
+        val triangulationPoints = existingPoints + createPoints(numberOfNewPoints, existingPoints, existingTriangles)
+        val triangles = delaunayTriangulation(triangulationPoints)
+        val minAngle = triangles.flatMap { triangle -> triangle.angles() }.min()
         val currentAttempts = attempts.incrementAndGet()
 
         if (currentAttempts % 1_000 == 0) {
-            logger.info { "attempts: $currentAttempts" }
+            logger.info { "$logTag attempts: $currentAttempts" }
         }
 
         triangles to minAngle
     }
         .parallel()
+        .takeWhile { currentTimeMillis() < timeoutAt }
         .filter { (_, actualMinAngle) -> actualMinAngle >= requiredMinAngle }
         .findFirst()
         .map { (triangle, _) -> triangle }
-        .orElseThrow { RuntimeException("Could not find valid triangulation") }
 
-    logger.info { "triangulation found after ${attempts.get()} attempts" }
+    if (triangles.isPresent) {
+        logger.info { "$logTag triangulation found after ${attempts.get()} attempts" }
+    } else {
+        logger.warn { "$logTag triangulation NOT found after ${attempts.get()} attempts in ${SINGLE_TRIANGULATION_TIMEOUT / 1_000} sec." }
+    }
 
-    return triangles
+    return triangles.orElse(emptyList())
 }
 
-private fun createPoints(numberOfPoints: Int): List<Point> {
-    val points = mutableListOf<Point>()
-    val timeoutAt = System.currentTimeMillis() + TIMEOUT
+private fun createPoints(
+    numberOfNewPoints: Int,
+    existingPoints: Set<Point>,
+    existingTriangles: Set<Triangle>
+): Set<Point> {
+    val points = mutableSetOf<Point>()
+    val timeoutAt = currentTimeMillis() + POINTS_TIMEOUT
 
-    fun isTooCloseToAnotherPoint(candidate: Point) =
-        points.any { distanceBetween(it, candidate) < MIN_DISTANCE_BETWEEN_POINTS }
+    fun allPoints() = existingPoints + points
 
-    fun isTooFarFromAllPoints(candidate: Point) =
-        !points.isEmpty() && points.all { distanceBetween(it, candidate) > MAX_DISTANCE_BETWEEN_POINTS }
+    fun isTooCloseToAnotherPoint(candidate: Point): Boolean {
+        return allPoints().any { otherPoint ->
+            distanceBetween(otherPoint, candidate) < MIN_DISTANCE_BETWEEN_POINTS
+        }
+    }
 
-    while (points.size < numberOfPoints && System.currentTimeMillis() < timeoutAt) {
+    fun isTooFarFromAllPoints(candidate: Point): Boolean {
+        return !allPoints().isEmpty() && allPoints().all { otherPoint ->
+            distanceBetween(otherPoint, candidate) > MAX_DISTANCE_BETWEEN_POINTS
+        }
+    }
+
+    fun isContainedInAnyTriangle(candidate: Point): Boolean {
+        return existingTriangles.any { triangle -> triangle.containsPoint(candidate) }
+    }
+
+    while (points.size < numberOfNewPoints && currentTimeMillis() < timeoutAt) {
         val x = (0 until WIDTH).random()
         val y = (0 until HEIGHT).random()
         val candidate = Point(x.toDouble(), y.toDouble())
-        if (!isTooCloseToAnotherPoint(candidate) && !isTooFarFromAllPoints(candidate)) {
+        if (!isTooCloseToAnotherPoint(candidate) &&
+            !isTooFarFromAllPoints(candidate) &&
+            !isContainedInAnyTriangle(candidate)
+        ) {
             points += candidate
         }
     }

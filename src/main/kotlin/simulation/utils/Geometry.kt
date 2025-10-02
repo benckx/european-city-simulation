@@ -5,7 +5,7 @@ import simulation.model.Point
 import simulation.model.Triangle
 import kotlin.math.hypot
 
-fun delaunayTriangulation(points: List<Point>): List<Triangle> {
+fun delaunayTriangulation(points: Collection<Point>): List<Triangle> {
     // determine bounds for the super-triangle
     val minX = points.minOf { it.x }
     val maxX = points.maxOf { it.x }

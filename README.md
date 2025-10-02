@@ -14,7 +14,7 @@ with [jMonkeyEngine](https://github.com/jMonkeyEngine/jmonkeyengine) later, and 
 
 It's still very much a work in progress, so I won't spend too much time on documentation at the moment.
 
-<img src="images/layout04.png" alt="drawing" width="900"/>
+<img src="images/layout05.png" alt="drawing" width="900"/>
 
 # How To
 
@@ -32,11 +32,11 @@ to [r/generative](https://www.reddit.com/r/generative)
 
 # TODO
 
+- ~~Init triangulation could be incremental: if we find a triangulation with 15 points, we could keep those points then
+  add 3 points instead of starting from the start every time -> we could start from 10 points and then add 2 by 2 or
+  something like that~~
 - If a quadrilateral is very trapezoidal, split it in 2 with right angles before subdividing should ensure
   sub-quadrilaterals are more rectangular (because we have a side with right angles to start subdividing from)
-- Init triangulation could be incremental: if we find a triangulation with 15 points, we could keep those points then
-  add 3 points instead of starting from the start every time -> we could start from 10 points and then add 2 by 2 or
-  something like that
 - Also use taxi cab distance instead of Euclidean distance when creating points for the triangulation
 - Merge the 4 contiguous triangles into 1 quadrilateral if 1 point is in the 4 triangles
 - Split main function for all the different phases (maybe with a `T : { Layout? -> Layout }`)

@@ -54,25 +54,28 @@ class Quadrilateral(points: Set<Point>) : Polygon(points) {
 
         val targetSubEdgeLength = MIN_LENGTH + (MAX_LENGTH - MIN_LENGTH) * lengthFactor
 
-        // 4. Calculate Subdivision Factors (same as before)
-        val pairs = oppositeEdgesTuples().toList() // Needs to be defined on Polygon
-        val shortEdges = pairs.minBy { it.avgLength() }
-        val longEdges = pairs.maxBy { it.avgLength() }
+        // calculate Subdivision Factors (same as before)
+        val tuples = oppositeEdgesTuples().toList()
+        val shortEdges = tuples.minBy { it.avgLength() }
+        val longEdges = tuples.maxBy { it.avgLength() }
         val shortLength = shortEdges.minLength()
         val longLength = longEdges.minLength()
 
         // use the ceiling division to determine the number of sub-blocks
         val shortDiv = round(shortLength / targetSubEdgeLength).toInt()
         val longDiv = round(longLength / targetSubEdgeLength).toInt()
+        val bothPositive = shortDiv > 0 && longDiv > 0
+        val isOneOnOne = shortDiv == 1 && longDiv == 1
 
-        logger.debug {
-            val shortEdge = String.format("%.1f", shortLength)
-            val longEdge = String.format("%.1f", longLength)
-            val targetL = String.format("%.1f", targetSubEdgeLength)
-            "[subdivision] Δ${angleDelta.toInt()}° (clamped to ${clampedDelta.toInt()}°), maxEdgeLength=${targetL} -> ${shortDiv}x${longDiv} (${shortEdge}x${longEdge})"
-        }
+        return if (bothPositive && !isOneOnOne) {
+            logger.debug {
+                val shortLengthStr = shortLength.toInt().toString()
+                val longEdgeStr = longLength.toInt().toString()
+                val targetL = String.format("%.1f", targetSubEdgeLength)
+                "[subdivision] Δ${angleDelta.toInt()}° (clamped to ${clampedDelta.toInt()}°), " +
+                        "targetSubEdgeLength=${targetL} -> ${shortDiv}x${longDiv} (${shortLengthStr}x${longEdgeStr})"
+            }
 
-        return if (shortDiv >= 1 && longDiv >= 1) {
             shortDiv to longDiv
         } else {
             null
