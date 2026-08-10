@@ -1,0 +1,24 @@
+[versions]
+kotlin = "2.2.20"
+kotlinxCoroutines = "1.10.2"
+kotlinxSerialization = "1.6.3"
+jackson = "2.17.2"
+kotlinLogging = "7.0.13"
+logback = "1.5.18"
+versionsPlugin = "0.52.0"
+testLogger = "4.0.0"
+
+[libraries]
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "kotlinLogging" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ben-manes-versions = { id = "com.github.ben-manes.versions", version.ref = "versionsPlugin" }
+test-logger = { id = "com.adarshr.test-logger", version.ref = "testLogger" }
