@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.4.10"
-kotlinxCoroutines = "1.10.2"
+kotlinxCoroutines = "1.11.0"
 kotlinxSerialization = "1.11.0"
 jackson = "2.17.2"
 kotlinLogging = "7.0.13"
