@@ -23,21 +23,20 @@ private const val NUMBER_OF_LAYOUT = 1
  * in red and their labels are prefixed with "S" so they can be recognized.
  */
 private fun renderNumberedEdges(layout: Layout, fileName: String) {
-    val secondaryEdges = layout.secondaryEdges.distinct()
-    val secondarySet = secondaryEdges.toSet()
-    val mainEdges = layout.polygons.flatMap { it.edges }.distinct()
-        .filterNot { secondarySet.contains(it) }
-    val allEdges = mainEdges + secondaryEdges
+//    val secondaryEdges = layout.secondaryEdges.distinct()
+//    val secondarySet = secondaryEdges.toSet()
+//    val mainEdges = lay
+//    val allEdges = mainEdges + secondaryEdges
 
     outputToPng(
         layout = layout,
         fileName = fileName,
-        clustersOfEdges = mainEdges.map { listOf(it) },
+        clustersOfEdges = setOf(layout.mainEdges),
         clusterEdgeStroke = 10f,
-        secondaryEdgeColor = Color.RED,
-        secondaryEdgeStroke = 8f,
+        secondaryEdgeColor = Color.GRAY,
+        secondaryEdgeStroke = 4f,
         mainEdgeStroke = 0f,
-        labelsAt = edgeLabels(secondaryEdges),
+        labelsAt = edgeLabels(layout.mainEdges.toList()),
         labelFontSize = 18f,
     )
 }

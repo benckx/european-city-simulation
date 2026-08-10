@@ -19,6 +19,11 @@ data class Layout(
         }
     }
 
+    val mainEdges: Set<Edge>
+        get() = polygons.flatMap { it.edges }.toSet()
+            .filterNot { secondaryEdges.contains(it) }
+            .toSet()
+
     fun triangles(): List<Triangle> {
         return polygons
             .filter { polygon -> polygon.isTriangle() }
