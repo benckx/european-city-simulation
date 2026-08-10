@@ -35,9 +35,9 @@ private fun renderNumberedEdges(layout: Layout, fileName: String) {
         clustersOfEdges = mainEdges.map { listOf(it) },
         clusterEdgeStroke = 10f,
         secondaryEdgeColor = Color.RED,
-        secondaryEdgeStroke = 14f,
+        secondaryEdgeStroke = 8f,
         mainEdgeStroke = 0f,
-        labelsAt = edgeLabels(allEdges, secondaryEdges),
+        labelsAt = edgeLabels(secondaryEdges),
         labelFontSize = 18f,
     )
 }
