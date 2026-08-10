@@ -1,9 +1,22 @@
 package simulation
 
+import simulation.model.Edge
 import simulation.model.Ladder
 import simulation.model.Layout
 import simulation.model.Point
 import simulation.model.QuadrilateralSubdivision
+
+/**
+ * Numbers every distinct edge, placing the number at the edge's midpoint.
+ * Secondary edges are prefixed with "S" so they can be told apart from main edges.
+ */
+fun edgeLabels(edges: List<Edge>, secondaryEdges: Collection<Edge> = emptyList()): Map<Point, String> {
+    val secondarySet = secondaryEdges.toSet()
+    return edges.mapIndexed { index, edge ->
+        val prefix = if (secondarySet.contains(edge)) "S" else ""
+        edge.pointsAt(.5).first() to "$prefix${index + 1}"
+    }.toMap()
+}
 
 fun ladderLabels(ladders: List<Ladder>): Map<Point, String> {
     return ladders.flatMapIndexed { ladderIndex, ladder ->

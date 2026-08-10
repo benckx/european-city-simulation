@@ -17,6 +17,31 @@ private val logger = KotlinLogging.logger {}
 
 private const val NUMBER_OF_LAYOUT = 1
 
+/**
+ * Renders a debug image where every distinct edge is numbered and colored.
+ * Main edges are drawn in varied colors (one per edge); secondary edges are highlighted
+ * in red and their labels are prefixed with "S" so they can be recognized.
+ */
+private fun renderNumberedEdges(layout: Layout, fileName: String) {
+    val secondaryEdges = layout.secondaryEdges.distinct()
+    val secondarySet = secondaryEdges.toSet()
+    val mainEdges = layout.polygons.flatMap { it.edges }.distinct()
+        .filterNot { secondarySet.contains(it) }
+    val allEdges = mainEdges + secondaryEdges
+
+    outputToPng(
+        layout = layout,
+        fileName = fileName,
+        clustersOfEdges = mainEdges.map { listOf(it) },
+        clusterEdgeStroke = 10f,
+        secondaryEdgeColor = Color.RED,
+        secondaryEdgeStroke = 14f,
+        mainEdgeStroke = 0f,
+        labelsAt = edgeLabels(allEdges, secondaryEdges),
+        labelFontSize = 18f,
+    )
+}
+
 private fun applyMultiPhasesSubdivisions(fileNamePrefix: String, layout: Layout): Layout {
     var newLayout = layout
     var subdivisions = layout.calculateQuadrilateralSubdivisions()
@@ -46,6 +71,9 @@ fun main() {
         val crossLineRatio = .33
         val triangulationHistory = createBaseTriangulation(54, 20)
         val layout1 = mergeTrianglesToQuadrilaterals(triangulationHistory.last())
+
+        // render all edges numbered and colored (debug: visualize what edges are)
+        renderNumberedEdges(layout1, "${fileNamePrefix}_debug_edges_numbered")
 
         triangulationHistory.forEachIndexed { i, layout ->
             outputToPng(
@@ -98,6 +126,9 @@ fun main() {
             fileName = "${fileNamePrefix}_phase3_subdivisions_applied",
             mainEdgeColor = Color.GRAY
         )
+
+        // render final layout edges numbered and colored, highlighting secondary edges
+        renderNumberedEdges(layout3, "${fileNamePrefix}_debug_edges_numbered_final")
 
         palettes.forEachIndexed { i, palette ->
             outputToPng(
