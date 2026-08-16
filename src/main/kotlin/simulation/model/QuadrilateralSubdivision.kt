@@ -1,17 +1,38 @@
 package simulation.model
 
+/**
+ * Result of subdividing a [Quadrilateral] into a grid of smaller cells.
+ *
+ * The subdivision is described by the internal edges that cut across the original quadrilateral:
+ * [shortSideEdges] run parallel to (and split) the shorter pair of opposite sides, while
+ * [longSideEdges] run parallel to (and split) the longer pair. Together with the original
+ * boundary, these edges form a grid whose cells can be recovered via [subQuadrilaterals].
+ */
 data class QuadrilateralSubdivision(
     val quadrilateral: Quadrilateral,
     val shortSideEdges: List<Edge>,
     val longSideEdges: List<Edge>
 ) {
 
+    /**
+     * All internal subdivision edges (both the short-side and long-side cuts).
+     */
     fun bothSidesEdges(): List<Edge> =
         shortSideEdges + longSideEdges
 
+    /**
+     * The grid dimensions as (columns, rows), i.e. the number of cells along each axis.
+     *
+     * Each set of internal edges splits its axis into one more cell than the number of edges.
+     */
     fun divisionFactors(): Pair<Int, Int> =
         Pair(shortSideEdges.size + 1, longSideEdges.size + 1)
 
+    /**
+     * Every distinct point involved in the subdivision: the original corners, the endpoints of
+     * the internal edges, and the interior intersection points where short-side and long-side
+     * edges cross.
+     */
     fun allPoints(): Set<Point> {
         val points = mutableSetOf<Point>()
         points += quadrilateral.points
@@ -22,6 +43,15 @@ data class QuadrilateralSubdivision(
         return points.toSet()
     }
 
+    /**
+     * Reconstruct the individual grid cells produced by the subdivision.
+     *
+     * Because the subdivision is only known as a set of points and edges, the cells are recovered
+     * geometrically: every combination of 4 points is tested, keeping only convex quadrilaterals
+     * whose four sides all lie along subdivision edges (original boundary or internal cuts) and
+     * that contain no other subdivision point. A final pass discards any non-minimal cell that
+     * fully encloses another, leaving only the smallest grid cells.
+     */
     fun subQuadrilaterals(): List<Quadrilateral> {
         val allPoints = allPoints().toList()
 
