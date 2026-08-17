@@ -4,7 +4,7 @@ kotlinxCoroutines = "1.11.0"
 kotlinxSerialization = "1.11.0"
 jackson = "2.22.1"
 kotlinLogging = "8.0.4"
-logback = "1.6.1"
+logback = "1.6.2"
 versionsPlugin = "0.61.0"
 testLogger = "4.0.0"
 
