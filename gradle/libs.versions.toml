@@ -20,5 +20,5 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ben-manes-versions = { id = "com.github.ben-manes.versions", version.ref = "versionsPlugin" }
+ben-manes-versions = { id = "io.github.ben-manes.versions", version.ref = "versionsPlugin" }
 test-logger = { id = "com.adarshr.test-logger", version.ref = "testLogger" }
